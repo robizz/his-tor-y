@@ -3,6 +3,7 @@ package main
 import (
 	"archive/tar"
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -16,17 +17,22 @@ import (
 )
 
 // TODO:
-// go through one file and start parsing data and putting data into a struct that makes sense.
+// time to start testing files are too big
 // a final cleanup of all text files must be done
 // don't forget testing
+// clean comments
+// variable names are ugly
 
 type ExitNode struct {
-	ExitNode      string `json:"ExitNode"`
-	Published     string `json:"Published"`
-	LastStatus    string `json:"LastStatus"`
-	ExitAddresses []struct {
-		ExitAddress string `json:"ExitAddress"`
-	} `json:"ExitList"`
+	ExitNode      string        `json:"ExitNode"`
+	Published     string        `json:"Published"`
+	LastStatus    string        `json:"LastStatus"`
+	ExitAddresses []ExitAddress `json:"ExitAddresses"`
+}
+
+type ExitAddress struct {
+	ExitAddress string `json:"ExitAddress"`
+	UpdatedAt   string `json:"UpdatedAt"`
 }
 
 func main() {
@@ -50,8 +56,16 @@ func main() {
 	}
 	for _, file := range files {
 		fmt.Println(file)
-		_, _ = marshall(file)
-
+		exitNodes, err := marshall(file)
+		if err != nil {
+			panic(err)
+		}
+		jsonList, err := json.Marshal(&exitNodes)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Print(string(jsonList))
+		break
 	}
 
 	// marshal one file
@@ -70,7 +84,8 @@ func main() {
 	// [...]
 
 }
-func marshall(fileName string) ([]ExitNode, error) {
+
+func marshall(fileName string) ([]*ExitNode, error) {
 	// Opening a file
 	file, err := os.Open(fileName)
 	if err != nil {
@@ -78,10 +93,12 @@ func marshall(fileName string) ([]ExitNode, error) {
 	}
 	defer file.Close()
 
-	// Creating a Reader and reading the file line by line
+	// Creating a Reader and reading the file line by line.
 	reader := bufio.NewReader(file)
+	exitNodes := []*ExitNode{}
+	var exitNode *ExitNode
 	for {
-		// Reading a line, lines are short so we don't worry abou getting truncated/prefixes
+		// Reading a line, lines are short so we don't worry abou getting truncated/prefixes.
 		line, _, err := reader.ReadLine()
 		if err != nil {
 			if err == io.EOF {
@@ -93,18 +110,39 @@ func marshall(fileName string) ([]ExitNode, error) {
 		// here starts marshaller logic
 		split := strings.Split(string(line), " ")
 		key := split[0]
+		// here I'm removing the key from the line to get a number of values (could be 1, 2, or 3 values depending on the entry).
+		value := strings.Replace(string(line), key+" ", "", 1)
+		// Here I'm splitting the value part, and I'm sure that at least every line type is going to have at least one value.
+		values := strings.Split(value, " ")
 
 		switch key {
 		//headers, so we skip
 		case "@type":
 		case "Downloaded":
 			continue
+		case "ExitNode":
+			// If the current ExitNode is not empty, we append it in the list and we move on with a new one.
+			if exitNode != nil {
+				exitNodes = append(exitNodes, exitNode)
+			}
+			// Time sto start filling a new ExitNode struct
+			exitNode = new(ExitNode)
+			exitNode.ExitNode = values[0]
+		case "Published":
+			exitNode.Published = strings.Join(values, " ")
+		case "LastStatus":
+			exitNode.LastStatus = strings.Join(values, " ")
+		case "ExitAddress":
+			e := ExitAddress{
+				ExitAddress: values[0],
+				UpdatedAt:   values[1] + " " + values[2],
+			}
+			exitNode.ExitAddresses = append(exitNode.ExitAddresses, e)
 		default:
 			fmt.Println(key)
-
 		}
 	}
-	return nil, nil
+	return exitNodes, nil
 }
 
 func buildFileList(dir string) ([]string, error) {
