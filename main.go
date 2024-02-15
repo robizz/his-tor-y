@@ -18,6 +18,8 @@ import (
 
 // TODO:
 // time to start testing files are too big
+// multiple tars.xz should be downloaded, we are doing this exercise just with one day now
+// when treating multiple days, duplicates management needs to be managed.
 // a final cleanup of all text files must be done
 // don't forget testing
 // clean comments
@@ -42,8 +44,9 @@ func main() {
 		log.Fatal(err)
 	}
 	// reenable line below once that the code works :)
-	// defer os.RemoveAll(dir)
+	defer os.RemoveAll(dir)
 
+	// open file for download
 	f := downloadFile(dir, "https://collector.torproject.org/archive/exit-lists/exit-list-2024-01.tar.xz")
 	err = extractFiles(f)
 	if err != nil {
@@ -56,7 +59,15 @@ func main() {
 	}
 	for _, file := range files {
 		fmt.Println(file)
-		exitNodes, err := marshall(file)
+		// Opening a file
+		file, err := os.Open(file)
+		if err != nil {
+			panic(err)
+		}
+		defer file.Close()
+		// Creating a Reader and reading the file line by line.
+		reader := bufio.NewReader(file)
+		exitNodes, err := unmarshall(reader)
 		if err != nil {
 			panic(err)
 		}
@@ -85,23 +96,17 @@ func main() {
 
 }
 
-func marshall(fileName string) ([]*ExitNode, error) {
-	// Opening a file
-	file, err := os.Open(fileName)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	// Creating a Reader and reading the file line by line.
-	reader := bufio.NewReader(file)
+func unmarshall(r *bufio.Reader) ([]*ExitNode, error) {
 	exitNodes := []*ExitNode{}
 	var exitNode *ExitNode
 	for {
 		// Reading a line, lines are short so we don't worry abou getting truncated/prefixes.
-		line, _, err := reader.ReadLine()
+		line, _, err := r.ReadLine()
 		if err != nil {
 			if err == io.EOF {
+				if exitNode != nil {
+					exitNodes = append(exitNodes, exitNode)
+				}
 				break
 			}
 			return nil, err
@@ -164,6 +169,8 @@ func buildFileList(dir string) ([]string, error) {
 	return fileList, nil
 }
 
+// Matt Holt uses a "file approach" meaning you pass path to functions that do the magic
+// https://github.com/mholt/archiver/blob/cdc68dd1f170b8dfc1a0d2231b5bb0967ed67006/tarxz.go#L53-L66
 func downloadFile(dir, uri string) string {
 	fileURI := filepath.Join(dir, path.Base(uri))
 	fmt.Println(fileURI)
