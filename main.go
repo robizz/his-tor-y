@@ -12,6 +12,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/ulikunitz/xz"
 )
@@ -21,20 +22,21 @@ import (
 // multiple tars.xz should be downloaded, we are doing this exercise just with one day now
 // when treating multiple days, duplicates management needs to be managed.
 // a final cleanup of all text files must be done
+// When program reaches the desired complexity and tests are in place, apply effective go / practical go / bill kennedy refactoring
 // don't forget testing
 // clean comments
 // variable names are ugly
 
 type ExitNode struct {
 	ExitNode      string        `json:"ExitNode"`
-	Published     string        `json:"Published"`
-	LastStatus    string        `json:"LastStatus"`
+	Published     time.Time     `json:"Published"`
+	LastStatus    time.Time     `json:"LastStatus"`
 	ExitAddresses []ExitAddress `json:"ExitAddresses"`
 }
 
 type ExitAddress struct {
-	ExitAddress string `json:"ExitAddress"`
-	UpdatedAt   string `json:"UpdatedAt"`
+	ExitAddress string    `json:"ExitAddress"`
+	UpdatedAt   time.Time `json:"UpdatedAt"`
 }
 
 func main() {
@@ -134,17 +136,30 @@ func unmarshall(r *bufio.Reader) ([]*ExitNode, error) {
 			exitNode = new(ExitNode)
 			exitNode.ExitNode = values[0]
 		case "Published":
-			exitNode.Published = strings.Join(values, " ")
+			u, err := time.Parse(time.RFC3339, values[0]+"T"+values[1]+"Z")
+			if err != nil {
+				return nil, err
+			}
+			exitNode.Published = u
 		case "LastStatus":
-			exitNode.LastStatus = strings.Join(values, " ")
+			u, err := time.Parse(time.RFC3339, values[0]+"T"+values[1]+"Z")
+			if err != nil {
+				return nil, err
+			}
+			exitNode.LastStatus = u
 		case "ExitAddress":
+			u, err := time.Parse(time.RFC3339, values[1]+"T"+values[2]+"Z")
+			if err != nil {
+				return nil, err
+			}
 			e := ExitAddress{
 				ExitAddress: values[0],
-				UpdatedAt:   values[1] + " " + values[2],
+				UpdatedAt:   u,
 			}
 			exitNode.ExitAddresses = append(exitNode.ExitAddresses, e)
 		default:
-			fmt.Println(key)
+			// skip
+			// fmt.Println(key)
 		}
 	}
 	return exitNodes, nil
