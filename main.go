@@ -18,7 +18,12 @@ import (
 )
 
 // TODO:
-// time to start testing files are too big
+// each file contains a month of data, inside the tar root, you have days folders that have have multiple hours files inside
+// that are basically the hour snapshot. I would assume to:
+// -  remove duplicates in a day, leaving the last updated entry. This means that we create a dictionary for each day folder, we fill it 
+// with an heuristic that should put in the dictionary the last update in the day, then the day dictionary is appended to other day dictionary to 
+// produce the final file.
+// in the future I would give command line options to tune the resolution of the compaction
 // multiple tars.xz should be downloaded, we are doing this exercise just with one day now
 // when treating multiple days, duplicates management needs to be managed.
 // a final cleanup of all text files must be done
@@ -46,7 +51,7 @@ func main() {
 		log.Fatal(err)
 	}
 	// reenable line below once that the code works :)
-	defer os.RemoveAll(dir)
+	// defer os.RemoveAll(dir)
 
 	// open file for download
 	f := downloadFile(dir, "https://collector.torproject.org/archive/exit-lists/exit-list-2024-01.tar.xz")
@@ -59,6 +64,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	fmt.Print(files)
 	for _, file := range files {
 		fmt.Println(file)
 		// Opening a file
@@ -77,7 +83,8 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Print(string(jsonList))
+		_ = string(jsonList)
+		// fmt.Print(string(jsonList))
 		break
 	}
 
@@ -165,6 +172,8 @@ func unmarshall(r *bufio.Reader) ([]*ExitNode, error) {
 	return exitNodes, nil
 }
 
+// buildFileList recursively walks inside a folder to generate the list of all 
+// files inside a folder tree. Items in the list comes out ordered.
 func buildFileList(dir string) ([]string, error) {
 	fileList := []string{}
 	err := filepath.Walk(dir,
