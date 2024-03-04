@@ -18,15 +18,12 @@ import (
 )
 
 // TODO:
-// each file contains a month of data, inside the tar root, you have days folders that have have multiple hours files inside
-// that are basically the hour snapshot. I would assume to:
-// -  remove duplicates in a day, leaving the last updated entry. This means that we create a dictionary for each day folder, we fill it 
-// with an heuristic that should put in the dictionary the last update in the day, then the day dictionary is appended to other day dictionary to 
-// produce the final file.
+// We need to start some refactorng to extract compaction function from main and allow for unit testing.
 // in the future I would give command line options to tune the resolution of the compaction
 // multiple tars.xz should be downloaded, we are doing this exercise just with one day now
 // when treating multiple days, duplicates management needs to be managed.
 // a final cleanup of all text files must be done
+// are we sure we want to use pointers for exit nodes? for now we have values, maybe a memory footprint and performance instrumentation with a full year of data would be nice
 // When program reaches the desired complexity and tests are in place, apply effective go / practical go / bill kennedy refactoring
 // don't forget testing
 // clean comments
@@ -64,9 +61,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Print(files)
+	// fmt.Print(files)
+
+	updated := make(map[string]ExitNode)
 	for _, file := range files {
-		fmt.Println(file)
+		// fmt.Println(file)
 		// Opening a file
 		file, err := os.Open(file)
 		if err != nil {
@@ -79,41 +78,40 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		jsonList, err := json.Marshal(&exitNodes)
-		if err != nil {
-			panic(err)
+
+		// this basically acts as remove duplicates
+		for _, n := range exitNodes {
+			updated[n.ExitNode] = n
 		}
-		_ = string(jsonList)
-		// fmt.Print(string(jsonList))
-		break
+		//print as list
+	}
+	// We created a dict, key is ExitNode AKA node id, and we leverage files being ordered by date during
+	// filepath.walk so that looping through all files should generate a map containing nodes with last update
+	// for each node.
+
+	v := make([]ExitNode, 0, len(updated))
+	for _, value := range updated {
+		v = append(v, value)
 	}
 
-	// marshal one file
+	jsonList, err := json.Marshal(&v)
+	if err != nil {
+		panic(err)
+	}
 
-	// @type tordnsel 1.0
-	// Downloaded 2024-01-30 13:02:00
-	// ExitNode FE39F07EBE7870DCE124AB30DF3ABD0700A43F75
-	// Published 2024-01-30 00:10:50
-	// LastStatus 2024-01-30 10:00:00
-	// ExitAddress 185.241.208.231 2024-01-30 10:21:54
-	// ExitAddress 185.241.208.232 2024-01-30 10:21:54
-	// ExitNode 23B49521BDC4588C7CCF3C38E552504118326B66
-	// Published 2024-01-30 05:44:30
-	// LastStatus 2024-01-30 11:00:00
-	// ExitAddress 194.26.192.64 2024-01-30 11:30:06
-	// [...]
+	fmt.Print(string(jsonList))
 
 }
 
-func unmarshall(r *bufio.Reader) ([]*ExitNode, error) {
-	exitNodes := []*ExitNode{}
-	var exitNode *ExitNode
+func unmarshall(r *bufio.Reader) ([]ExitNode, error) {
+	exitNodes := []ExitNode{}
+	var exitNode ExitNode
 	for {
-		// Reading a line, lines are short so we don't worry abou getting truncated/prefixes.
+		// Reading a line, lines are short so we don't worry about getting truncated/prefixes.
 		line, _, err := r.ReadLine()
 		if err != nil {
 			if err == io.EOF {
-				if exitNode != nil {
+				if exitNode.ExitNode != "" {
 					exitNodes = append(exitNodes, exitNode)
 				}
 				break
@@ -136,11 +134,11 @@ func unmarshall(r *bufio.Reader) ([]*ExitNode, error) {
 			continue
 		case "ExitNode":
 			// If the current ExitNode is not empty, we append it in the list and we move on with a new one.
-			if exitNode != nil {
+			if exitNode.ExitNode != "" {
 				exitNodes = append(exitNodes, exitNode)
 			}
 			// Time sto start filling a new ExitNode struct
-			exitNode = new(ExitNode)
+			exitNode = ExitNode{}
 			exitNode.ExitNode = values[0]
 		case "Published":
 			u, err := time.Parse(time.RFC3339, values[0]+"T"+values[1]+"Z")
@@ -172,7 +170,7 @@ func unmarshall(r *bufio.Reader) ([]*ExitNode, error) {
 	return exitNodes, nil
 }
 
-// buildFileList recursively walks inside a folder to generate the list of all 
+// buildFileList recursively walks inside a folder to generate the list of all
 // files inside a folder tree. Items in the list comes out ordered.
 func buildFileList(dir string) ([]string, error) {
 	fileList := []string{}
@@ -197,7 +195,7 @@ func buildFileList(dir string) ([]string, error) {
 // https://github.com/mholt/archiver/blob/cdc68dd1f170b8dfc1a0d2231b5bb0967ed67006/tarxz.go#L53-L66
 func downloadFile(dir, uri string) string {
 	fileURI := filepath.Join(dir, path.Base(uri))
-	fmt.Println(fileURI)
+	// fmt.Println(fileURI)
 	resp, err := http.Get(uri)
 	if err != nil {
 		panic(err)
