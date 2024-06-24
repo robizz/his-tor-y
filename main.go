@@ -57,42 +57,34 @@ func main() {
 		panic(err)
 	}
 
-	files, err := buildFileList(dir)
+	filenames, err := buildFileList(dir)
 	if err != nil {
 		panic(err)
 	}
 	// fmt.Print(files)
 
-	updated := make(map[string]ExitNode)
-	for _, file := range files {
-		// fmt.Println(file)
-		// Opening a file
-		file, err := os.Open(file)
-		if err != nil {
-			panic(err)
-		}
-		defer file.Close()
-		// Creating a Reader and reading the file line by line.
-		reader := bufio.NewReader(file)
-		exitNodes, err := unmarshall(reader)
-		if err != nil {
-			panic(err)
-		}
-
-		// this basically acts as remove duplicates
-		for _, n := range exitNodes {
-			updated[n.ExitNode] = n
-		}
-		//print as list
-	}
+	// fmt.Println(file)
+	// Opening a file
+	// Creating a Reader and reading the file line by line.
+	// this basically acts as remove duplicates
+	//print as list
 	// We created a dict, key is ExitNode AKA node id, and we leverage files being ordered by date during
 	// filepath.walk so that looping through all files should generate a map containing nodes with last update
 	// for each node.
+	readers := make([]*bufio.Reader, len(filenames))
+	for _, filename := range filenames {
 
-	v := make([]ExitNode, 0, len(updated))
-	for _, value := range updated {
-		v = append(v, value)
+		file, err := os.Open(filename)
+		if err != nil {
+			panic(err)
+		}
+		reader := bufio.NewReader(file)
+		readers =append(readers, reader)
+		// test if this defer actually works.
+		defer file.Close()
 	}
+	
+	v := mapToMostRecentEntries(readers)
 
 	jsonList, err := json.Marshal(&v)
 	if err != nil {
@@ -101,6 +93,28 @@ func main() {
 
 	fmt.Print(string(jsonList))
 
+}
+
+func mapToMostRecentEntries(readers []*bufio.Reader) []ExitNode {
+	updated := make(map[string]ExitNode)
+	for _, reader := range readers {
+		
+		exitNodes, err := unmarshall(reader)
+		if err != nil {
+			panic(err)
+		}
+
+		for _, n := range exitNodes {
+			updated[n.ExitNode] = n
+		}
+
+	}
+
+	v := make([]ExitNode, 0, len(updated))
+	for _, value := range updated {
+		v = append(v, value)
+	}
+	return v
 }
 
 func unmarshall(r *bufio.Reader) ([]ExitNode, error) {
