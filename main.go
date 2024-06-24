@@ -35,8 +35,6 @@ import (
 // we need an integration test to test the whole flow
 // END TODO
 
-
-
 // exitListsURL contains the template for the exit node compressed files URL.
 // The string is supposed to be:
 // https://collector.torproject.org/archive/exit-lists/exit-list-2024-01.tar.xz
@@ -61,7 +59,7 @@ func main() {
 		log.Fatal(err)
 	}
 	// reenable line below once that the code works :)
-	// defer os.RemoveAll(dir)
+	defer os.RemoveAll(dir)
 
 	// start and end emulates TUI params for now.
 	start := "2024-01"
@@ -77,7 +75,9 @@ func main() {
 	for _, d := range dates {
 		u := fmt.Sprintf(exitListsURLTemplate, d)
 		// fmt.Println(u)
+		// Performances can be improved if download happens in parallel.
 		f := downloadFile(dir, u)
+		// Performances can be improved if extraction happens in parallel.
 		err = extractFiles(f)
 		if err != nil {
 			panic(err)
@@ -98,27 +98,42 @@ func main() {
 	// We created a dict, key is ExitNode AKA node id, and we leverage files being ordered by date during
 	// filepath.walk so that looping through all files should generate a map containing nodes with last update
 	// for each node.
+	files := make([]*os.File, len(filenames))
 	readers := make([]*bufio.Reader, len(filenames))
 	for i, filename := range filenames {
-
 		file, err := os.Open(filename)
 		if err != nil {
 			panic(err)
 		}
-		// This should be safe because we use make to create a slice with len(filenames) capacity. 
+		// This should be safe because we use make to create a slice with len(filenames) capacity.
 		// append does not work for some reason here. Study why.
 		readers[i] = bufio.NewReader(file)
+		// We are going to use this list of files to close them all.
+		files[i] = file
 		// test if this defer actually works.
 		// defer file.Close()
 	}
+	// Close all opened files before exiting
+	// is this correct? Investigate.
+	for _, file := range files {
+		defer file.Close()
+	}
 
+	// mapToMostRecentEntries is going to be just a functionality that answers a question like:
+	// Is this IP a tor exit node NOW?
+	// doing
+	// `go run . [with maybe an -all parameter ] > nodes.json && jq '.[] | select(.ExitAddresses[].ExitAddress == "107.189.31.187")' nodes.json
+	// of caourse the date parameters for his-tor-y should be configured properly.
+	// Performances can probably be improved if read happens in parallel,
+	// However dedup happens leveraging an hashmap, so same entries must be accessed
+	// in a safe way with some sort of semaphore. Measure performances before and after.
 	v := mapToMostRecentEntries(readers)
 
 	jsonList, err := json.Marshal(&v)
 	if err != nil {
 		panic(err)
 	}
-    
+
 	// Final print do not comment.
 	fmt.Print(string(jsonList))
 
