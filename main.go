@@ -106,6 +106,7 @@ func main() {
 			panic(err)
 		}
 		// This should be safe because we use make to create a slice with len(filenames) capacity. 
+		// append does not work for some reason here. Study why.
 		readers[i] = bufio.NewReader(file)
 		// test if this defer actually works.
 		// defer file.Close()
