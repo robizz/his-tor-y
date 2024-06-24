@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -28,6 +29,18 @@ import (
 // don't forget testing
 // clean comments
 // variable names are ugly
+// create a cache and allow commands to run in the cache (maybe using a bolt db? an embedded database? an in memory struct?)
+// command should be silent to use pipe or output redirect. errors should be on stderr
+// errors should be constant errors like dave cheney suggests
+// we need an integration test to test the whole flow
+// END TODO
+
+
+
+// exitListsURL contains the template for the exit node compressed files URL.
+// The string is supposed to be:
+// https://collector.torproject.org/archive/exit-lists/exit-list-2024-01.tar.xz
+const exitListsURLTemplate = "https://collector.torproject.org/archive/exit-lists/exit-list-%s.tar.xz"
 
 type ExitNode struct {
 	ExitNode      string        `json:"ExitNode"`
@@ -43,25 +56,39 @@ type ExitAddress struct {
 
 func main() {
 	// create main temporary directory
-	dir, err := os.MkdirTemp("", "history-")
+	dir, err := os.MkdirTemp("", "his-tor-y-")
 	if err != nil {
 		log.Fatal(err)
 	}
 	// reenable line below once that the code works :)
 	// defer os.RemoveAll(dir)
 
-	// open file for download
-	f := downloadFile(dir, "https://collector.torproject.org/archive/exit-lists/exit-list-2024-01.tar.xz")
-	err = extractFiles(f)
+	// start and end emulates TUI params for now.
+	start := "2024-01"
+	end := "2024-03"
+
+	dates, err := generateYearDashMonthInterval(start, end)
 	if err != nil {
 		panic(err)
+	}
+
+	// fmt.Println(dates)
+	// open files for download
+	for _, d := range dates {
+		u := fmt.Sprintf(exitListsURLTemplate, d)
+		// fmt.Println(u)
+		f := downloadFile(dir, u)
+		err = extractFiles(f)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	filenames, err := buildFileList(dir)
 	if err != nil {
 		panic(err)
 	}
-	// fmt.Print(files)
+	// fmt.Println(filenames)
 
 	// fmt.Println(file)
 	// Opening a file
@@ -72,25 +99,26 @@ func main() {
 	// filepath.walk so that looping through all files should generate a map containing nodes with last update
 	// for each node.
 	readers := make([]*bufio.Reader, len(filenames))
-	for _, filename := range filenames {
+	for i, filename := range filenames {
 
 		file, err := os.Open(filename)
 		if err != nil {
 			panic(err)
 		}
-		reader := bufio.NewReader(file)
-		readers =append(readers, reader)
+		// This should be safe because we use make to create a slice with len(filenames) capacity. 
+		readers[i] = bufio.NewReader(file)
 		// test if this defer actually works.
-		defer file.Close()
+		// defer file.Close()
 	}
-	
+
 	v := mapToMostRecentEntries(readers)
 
 	jsonList, err := json.Marshal(&v)
 	if err != nil {
 		panic(err)
 	}
-
+    
+	// Final print do not comment.
 	fmt.Print(string(jsonList))
 
 }
@@ -98,7 +126,7 @@ func main() {
 func mapToMostRecentEntries(readers []*bufio.Reader) []ExitNode {
 	updated := make(map[string]ExitNode)
 	for _, reader := range readers {
-		
+
 		exitNodes, err := unmarshall(reader)
 		if err != nil {
 			panic(err)
@@ -203,6 +231,36 @@ func buildFileList(dir string) ([]string, error) {
 		return nil, err
 	}
 	return fileList, nil
+}
+
+func generateYearDashMonthInterval(start, end string) ([]string, error) {
+
+	// Define the date format.
+	const yearDashMonth = "2006-01"
+
+	startDate, err := time.Parse(yearDashMonth, start)
+	if err != nil {
+		return nil, err
+	}
+
+	endDate, err := time.Parse(yearDashMonth, end)
+	if err != nil {
+		return nil, err
+	}
+
+	if startDate.After(endDate) {
+		// This should be implemented using
+		// constant errors: https://dave.cheney.net/2016/04/07/constant-errors.
+		return nil, errors.New("start date is after end date")
+	}
+
+	var dates []string
+	for d := startDate; !d.After(endDate); d = d.AddDate(0, 1, 0) {
+		dates = append(dates, d.Format(yearDashMonth))
+	}
+
+	return dates, nil
+
 }
 
 // Matt Holt uses a "file approach" meaning you pass path to functions that do the magic
