@@ -1,4 +1,4 @@
-module github.com/robizz/hist-tor-y
+module github.com/robizz/his-tor-y
 
 go 1.21.6
 
