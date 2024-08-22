@@ -52,9 +52,9 @@ ExitAddress 194.26.192.64 2024-01-30 11:30:06`
 	}
 }
 
-// TestmapToMostRecentEntries tests that we are getting multiple updates for each node in input
+// TestMapToMostRecentEntries tests that we are getting multiple updates for each node in input
 // but giving just the most updated one as a result.
-func TestmapToMostRecentEntries(t *testing.T) {
+func TestMapToMostRecentEntries(t *testing.T) {
 
 	// create 2 reders for 2 files and test the update.
 	someString := `
