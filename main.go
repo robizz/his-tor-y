@@ -33,6 +33,9 @@ import (
 // command should be silent to use pipe or output redirect. errors should be on stderr
 // errors should be constant errors like dave cheney suggests
 // we need an integration test to test the whole flow
+// Main functionality is: I give you the list of nodes that were found for the time range with the last update inside the time range.
+// another funtionality is "IP History":I give you an IP and a parameter like "days", the tool gives me 0 with formatted list of nodes and dates.
+// generate go doc
 // END TODO
 
 // exitListsURL contains the template for the exit node compressed files URL.
