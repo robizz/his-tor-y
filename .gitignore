@@ -1,2 +1,6 @@
 nodes.json
 his-tor-y
+
+# coverage files
+cover.out
+cover.html
