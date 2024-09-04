@@ -15,7 +15,7 @@ import (
 // TestUnmarshall tests that our unmarshal business logic is working correctly.
 func TestUnmarshall(t *testing.T) {
 
-	someString := `
+	var someString = `
 @type tordnsel 1.0
 Downloaded 2024-01-30 13:02:00
 ExitNode FE39F07EBE7870DCE124AB30DF3ABD0700A43F75
@@ -61,7 +61,7 @@ ExitAddress 194.26.192.64 2024-01-30 11:30:06`
 func TestMapToMostRecentEntries(t *testing.T) {
 
 	// create 2 reders for 2 files and test the update.
-	someString := `
+	var someString = `
 @type tordnsel 1.0
 Downloaded 2024-01-30 13:02:00
 ExitNode FE39F07EBE7870DCE124AB30DF3ABD0700A43F75
