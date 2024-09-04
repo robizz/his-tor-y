@@ -19,6 +19,7 @@ import (
 )
 
 // TODO:
+// test file handling functions and see the coverage increasing
 // We need to start some refactorng to extract compaction function from main and allow for unit testing.
 // in the future I would give command line options to tune the resolution of the compaction
 // multiple tars.xz should be downloaded, we are doing this exercise just with one day now

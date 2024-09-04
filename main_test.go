@@ -2,6 +2,10 @@ package main
 
 import (
 	"bufio"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -128,4 +132,32 @@ func TestGenerateExitListsURLs(t *testing.T) {
 		})
 	}
 
+}
+
+func TestDownloadFile(t *testing.T) {
+	// Setup a mock server
+	var expected = "Hello, client"
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, expected)
+	}))
+	defer ts.Close()
+
+	// Setup a temp folder
+	dir, err := os.MkdirTemp("", "")
+	if err != nil {
+		t.Errorf("error setup tmp dir:  %v", err)
+	}
+	// reenable line below once that the code works :)
+	defer os.RemoveAll(dir)
+
+	f := downloadFile(dir, ts.URL)
+
+	content, err := os.ReadFile(f)
+	if err != nil {
+		t.Errorf("error reading downloaded file:  %v", err)
+	}
+
+	if string(content) != expected {
+		t.Errorf("expected %s, but got %s", content, expected)
+	}
 }
