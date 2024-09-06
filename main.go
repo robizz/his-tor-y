@@ -80,7 +80,10 @@ func main() {
 		u := fmt.Sprintf(exitListsURLTemplate, d)
 		// fmt.Println(u)
 		// Performances can be improved if download happens in parallel.
-		f := downloadFile(dir, u)
+		f, err := downloadFile(dir, u)
+		if err != nil {
+			panic(err)
+		}
 		// Performances can be improved if extraction happens in parallel.
 		err = extractFiles(f)
 		if err != nil {
@@ -285,27 +288,31 @@ func generateYearDashMonthInterval(start, end string) ([]string, error) {
 
 // Matt Holt uses a "file approach" meaning you pass path to functions that do the magic
 // https://github.com/mholt/archiver/blob/cdc68dd1f170b8dfc1a0d2231b5bb0967ed67006/tarxz.go#L53-L66
-func downloadFile(dir, uri string) string {
+func downloadFile(dir, uri string) (string, error) {
 	fileURI := filepath.Join(dir, path.Base(uri))
 	// fmt.Println(fileURI)
 	resp, err := http.Get(uri)
 	if err != nil {
-		panic(err)
+		return "", fmt.Errorf("download error: %w", err)
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != 200{
+		return "", fmt.Errorf("download error, server returned %d", resp.StatusCode)
+	}
+	
 	fileHandle, err := os.OpenFile(fileURI, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
 	if err != nil {
-		panic(err)
+		return "", fmt.Errorf("download error: %w", err)
 	}
 	defer fileHandle.Close()
 
 	_, err = io.Copy(fileHandle, resp.Body)
 	if err != nil {
-		panic(err)
+		return "", fmt.Errorf("download error: %w", err)
 	}
 
-	return fileURI
+	return fileURI, nil
 }
 
 func extractFiles(fileURI string) error {

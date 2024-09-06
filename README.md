@@ -3,7 +3,8 @@ Generate TOR exit nodes history dataset using https://metrics.torproject.org/col
 
 ## test the coverage
 ```
-test -v -coverprofile cover. out ./...                                                                                                                                   
+rm -f cover.html cover.out
+go test -v -coverprofile cover.out ./...                                                                                                                                   
 go tool cover -html cover.out -o cover.html                                                                                                                              
 open cover.html        
 ```
