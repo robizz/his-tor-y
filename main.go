@@ -208,19 +208,19 @@ func unmarshall(r *bufio.Reader) ([]ExitNode, error) {
 		case "Published":
 			u, err := time.Parse(time.RFC3339, values[0]+"T"+values[1]+"Z")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("field Published date parse error: %w", err)
 			}
 			exitNode.Published = u
 		case "LastStatus":
 			u, err := time.Parse(time.RFC3339, values[0]+"T"+values[1]+"Z")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("field LastStatus date parse error: %w", err)
 			}
 			exitNode.LastStatus = u
 		case "ExitAddress":
 			u, err := time.Parse(time.RFC3339, values[1]+"T"+values[2]+"Z")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("field ExitAddress date parse error: %w", err)
 			}
 			e := ExitAddress{
 				ExitAddress: values[0],
@@ -289,8 +289,16 @@ func generateYearDashMonthInterval(start, end string) ([]string, error) {
 // Matt Holt uses a "file approach" meaning you pass path to functions that do the magic
 // https://github.com/mholt/archiver/blob/cdc68dd1f170b8dfc1a0d2231b5bb0967ed67006/tarxz.go#L53-L66
 func downloadFile(dir, uri string) (string, error) {
+	
 	fileURI := filepath.Join(dir, path.Base(uri))
 	// fmt.Println(fileURI)
+	
+	fileHandle, err := os.OpenFile(fileURI, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
+	if err != nil {
+		return "", fmt.Errorf("download error: %w", err)
+	}
+	defer fileHandle.Close()
+	
 	resp, err := http.Get(uri)
 	if err != nil {
 		return "", fmt.Errorf("download error: %w", err)
@@ -300,12 +308,6 @@ func downloadFile(dir, uri string) (string, error) {
 	if resp.StatusCode != 200{
 		return "", fmt.Errorf("download error, server returned %d", resp.StatusCode)
 	}
-	
-	fileHandle, err := os.OpenFile(fileURI, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
-	if err != nil {
-		return "", fmt.Errorf("download error: %w", err)
-	}
-	defer fileHandle.Close()
 
 	_, err = io.Copy(fileHandle, resp.Body)
 	if err != nil {

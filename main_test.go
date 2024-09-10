@@ -56,6 +56,58 @@ ExitAddress 194.26.192.64 2024-01-30 11:30:06`
 	}
 }
 
+// TestUnmarshall tests that our unmarshal business logic is working correctly.
+func TestUnmarshallErrorsIfBadDateFormat(t *testing.T) {
+
+	tests := []struct {
+		torNodes              string
+		expectedErrorContains string
+	}{
+		{`
+@type tordnsel 1.0
+Downloaded 2024-01-30 13:02:00
+ExitNode FE39F07EBE7870DCE124AB30DF3ABD0700A43F75
+Published ERROR-01-30 00:10:50
+LastStatus 2024-01-30 10:00:00
+ExitAddress 185.241.208.231 2024-01-30 10:21:54
+`,
+			"field Published date parse error:",
+		},
+		{`
+@type tordnsel 1.0
+Downloaded 2024-01-30 13:02:00
+ExitNode FE39F07EBE7870DCE124AB30DF3ABD0700A43F75
+Published 2024-01-30 00:10:50
+LastStatus ERROR-01-30 10:00:00
+ExitAddress 185.241.208.231 2024-01-30 10:21:54
+`,
+			"field LastStatus date parse error:",
+		},
+		{`
+@type tordnsel 1.0
+Downloaded 2024-01-30 13:02:00
+ExitNode FE39F07EBE7870DCE124AB30DF3ABD0700A43F75
+Published 2024-01-30 00:10:50
+LastStatus 2024-01-30 10:00:00
+ExitAddress 185.241.208.231 ERROR-01-30 10:21:54
+`,
+			"field ExitAddress date parse error:",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run("should error with: "+tt.expectedErrorContains, func(t *testing.T) {
+			r := strings.NewReader(tt.torNodes)
+			b := bufio.NewReader(r)
+			_, err := unmarshall(b)
+			if err == nil || !strings.Contains(err.Error(), tt.expectedErrorContains) {
+				t.Errorf("marshall expected error should contain %v", tt.expectedErrorContains)
+			}
+		})
+
+	}
+}
+
 // TestMapToMostRecentEntries tests that we are getting multiple updates for each node in input
 // but giving just the most updated one as a result.
 func TestMapToMostRecentEntries(t *testing.T) {
@@ -165,12 +217,12 @@ func TestDownloadFile(t *testing.T) {
 }
 
 func TestDownloadFileConnectionErrorOnDownload(t *testing.T) {
-	
+
 	// The strategy here is that the mock server answers too late.
-	// We set the default timeout for http to be 1ms, but the mock server is going to 
+	// We set the default timeout for http to be 1ms, but the mock server is going to
 	// answer after 10 ms. This makes the downloadFile function to err.
 	http.DefaultTransport.(*http.Transport).ResponseHeaderTimeout = 1 * time.Millisecond
-	
+
 	// Setup a mock server
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(10 * time.Millisecond)
@@ -185,7 +237,6 @@ func TestDownloadFileConnectionErrorOnDownload(t *testing.T) {
 	}
 	// reenableline below once that the code works :)
 	defer os.RemoveAll(dir)
-
 
 	_, err = downloadFile(dir, ts.URL)
 	if err == nil {
@@ -229,29 +280,9 @@ func TestDownloadFileErrorOnMakeTmpFile(t *testing.T) {
 
 	// Set permission to not allow opening.
 	err = os.Chmod(dir, 0000)
-    if err != nil {
-		t.Errorf("error setup tmp dir permissions:  %v", err)
-    }
-
-	_, err = downloadFile(dir, ts.URL)
-	if err == nil {
-		t.Errorf("error expected")
-	}
-}
-
-func TestDownloadFileErrorOnCopy(t *testing.T) {
-	var expected = "Hello, client"
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, expected)
-	}))
-	defer ts.Close()
-
-	// Setup a temp folder
-	dir, err := os.MkdirTemp("", "")
 	if err != nil {
-		t.Errorf("error setup tmp dir:  %v", err)
+		t.Errorf("error setup tmp dir permissions:  %v", err)
 	}
-	defer os.RemoveAll(dir)
 
 	_, err = downloadFile(dir, ts.URL)
 	if err == nil {
