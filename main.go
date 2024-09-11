@@ -245,7 +245,6 @@ func buildFileList(dir string) ([]string, error) {
 				return err
 			}
 			if !info.IsDir() {
-
 				fileList = append(fileList, path)
 			}
 			return nil
@@ -289,23 +288,23 @@ func generateYearDashMonthInterval(start, end string) ([]string, error) {
 // Matt Holt uses a "file approach" meaning you pass path to functions that do the magic
 // https://github.com/mholt/archiver/blob/cdc68dd1f170b8dfc1a0d2231b5bb0967ed67006/tarxz.go#L53-L66
 func downloadFile(dir, uri string) (string, error) {
-	
+
 	fileURI := filepath.Join(dir, path.Base(uri))
 	// fmt.Println(fileURI)
-	
+
 	fileHandle, err := os.OpenFile(fileURI, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
 	if err != nil {
 		return "", fmt.Errorf("download error: %w", err)
 	}
 	defer fileHandle.Close()
-	
+
 	resp, err := http.Get(uri)
 	if err != nil {
 		return "", fmt.Errorf("download error: %w", err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200{
+	if resp.StatusCode != 200 {
 		return "", fmt.Errorf("download error, server returned %d", resp.StatusCode)
 	}
 
