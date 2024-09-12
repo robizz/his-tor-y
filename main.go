@@ -262,12 +262,12 @@ func generateYearDashMonthInterval(start, end string) ([]string, error) {
 
 	startDate, err := time.Parse(yearDashMonth, start)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("start date parse error: %w", err)
 	}
 
 	endDate, err := time.Parse(yearDashMonth, end)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("end date parse error: %w", err)
 	}
 
 	if startDate.After(endDate) {
@@ -320,13 +320,13 @@ func extractFiles(fileURI string) error {
 
 	fileHandle, err := os.Open(fileURI)
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("extract file error: %w", err)
 	}
 	defer fileHandle.Close()
 
 	r, err := xz.NewReader(fileHandle)
 	if err != nil {
-		log.Fatalf("xz Reader error %s", err)
+		return fmt.Errorf("xz reader error: %w", err)
 	}
 
 	// untar
@@ -340,11 +340,11 @@ func extractFiles(fileURI string) error {
 			fileHandle.Close()
 			err = os.Remove(fileURI)
 			if err != nil {
-				return err
+				return fmt.Errorf("tar reader error: %w", err)
 			}
 			return nil
 		case err != nil:
-			return err
+			return fmt.Errorf("tar reader error: %w", err)
 		case header == nil:
 			continue
 		}
@@ -356,20 +356,21 @@ func extractFiles(fileURI string) error {
 		case tar.TypeDir:
 			if _, err := os.Stat(target); err != nil {
 				if err := os.MkdirAll(target, 0755); err != nil {
-					return err
+					return fmt.Errorf("tar reader error: %w", err)
+
 				}
 			}
 		// create file
 		case tar.TypeReg:
 			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
 			if err != nil {
-				return err
+				return fmt.Errorf("tar reader error: %w", err)
 			}
 			defer f.Close()
 
 			// copy contents to file
 			if _, err := io.Copy(f, tr); err != nil {
-				return err
+				return fmt.Errorf("tar reader error: %w", err)
 			}
 		}
 	}
