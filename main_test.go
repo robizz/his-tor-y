@@ -217,7 +217,7 @@ func TestDownloadFile(t *testing.T) {
 	}
 }
 
-func TestDownloadFileConnectionErrorOnDownload(t *testing.T) {
+func TestDownloadFileErrorOnDownloadConnection(t *testing.T) {
 
 	// The strategy here is that the mock server answers too late.
 	// We set the default timeout for http to be 1ms, but the mock server is going to
@@ -329,7 +329,7 @@ func TestBuildFileList(t *testing.T) {
 	}
 }
 
-func TestBuildFileListEror(t *testing.T) {
+func TestBuildFileListError(t *testing.T) {
 	dir1, err := os.MkdirTemp("", "")
 	if err != nil {
 		t.Errorf("error setup tmp dir:  %v", err)
@@ -405,7 +405,7 @@ func TestExtractFiles(t *testing.T) {
 	}
 }
 
-func TestExtractFilesPermissionError(t *testing.T) {
+func TestExtractFilesErrorOnPermission(t *testing.T) {
 	var xz = "/Td6WFoAAATm1rRGAgAhARYAAAB0L+Wj4Cf/AIVdADIaSqdFdWDG5DyioorqbKzrYutpz48hW6T+6+aNVA3T8jf0PzyS9ALcmnLhrtM7easSylimqAcho4xEVMQvj0WUss4+rmkoIJai40j22THQcF1sgaTYr2WFsc30TdspFJG2juRj05Obtr1i4YsH5bI9TfNStOkr9x7IyHFMvIuvPA+92QAAAAAA6zfzwvuhqRYAAaEBgFAAAK2nkK2xxGf7AgAAAAAEWVo="
 
 	dec, err := base64.StdEncoding.DecodeString(xz)
@@ -442,7 +442,7 @@ func TestExtractFilesPermissionError(t *testing.T) {
 		t.Errorf("expected error")
 	}
 
-	// Change back permissions and then lock the dir where extraction 
+	// Change back permissions and then lock the dir where extraction
 	// is supposed to happen.
 	err = os.Chmod(dir+string(os.PathSeparator)+"test.tar.xz", 0755)
 	if err != nil {
@@ -460,7 +460,7 @@ func TestExtractFilesPermissionError(t *testing.T) {
 	}
 }
 
-func TestExtractFilesMalformedXZError(t *testing.T) {
+func TestExtractFilesErrorMalformedXZ(t *testing.T) {
 	var xz = "dGVzdAo="
 
 	dec, err := base64.StdEncoding.DecodeString(xz)
