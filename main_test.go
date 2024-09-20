@@ -112,31 +112,66 @@ ExitAddress 185.241.208.231 ERROR-01-30 10:21:54
 // TestMapToMostRecentEntries tests that we are getting multiple updates for each node in input
 // but giving just the most updated one as a result.
 func TestMapToMostRecentEntries(t *testing.T) {
-
+	var readers []*bufio.Reader
 	// create 2 reders for 2 files and test the update.
-	var someString = `
+	var first = `
 @type tordnsel 1.0
 Downloaded 2024-01-30 13:02:00
 ExitNode FE39F07EBE7870DCE124AB30DF3ABD0700A43F75
 Published 2024-01-30 00:10:50
 LastStatus 2024-01-30 10:00:00
 ExitAddress 185.241.208.231 2024-01-30 10:21:54
-ExitAddress 185.241.208.232 2024-01-30 10:21:55
-ExitNode 23B49521BDC4588C7CCF3C38E552504118326B66
-Published 2024-01-30 05:44:30
-LastStatus 2024-01-30 11:00:00
-ExitAddress 194.26.192.64 2024-01-30 11:30:06`
+ExitAddress 185.241.208.232 2024-01-30 10:21:55`
 
-	r := strings.NewReader(someString)
-	b := bufio.NewReader(r)
-	exitNodes, err := unmarshall(b)
+	var second = `
+@type tordnsel 1.0
+Downloaded 2024-01-30 13:02:00
+ExitNode FE39F07EBE7870DCE124AB30DF3ABD0700A43F75
+Published 2024-01-31 00:10:50
+LastStatus 2024-01-31 10:00:00
+ExitAddress 185.241.208.231 2024-01-31 10:21:54
+ExitAddress 185.241.208.232 2024-01-31 10:21:55`
+
+	r1 := strings.NewReader(first)
+	r2 := strings.NewReader(second)
+	readers = append(readers, bufio.NewReader(r1), bufio.NewReader(r2))
+	nodes, err := mapToMostRecentEntries(readers)
 	if err != nil {
-		t.Fatalf("%v", err)
+		t.Errorf("unexpected mapToMostRecentEntries error")
 	}
-	if exitNodes[0].ExitAddresses[0].ExitAddress != "185.241.208.231" {
-		t.Fatalf("expected 185.241.208.231 as it is the last ExitAddress update for ExitNode FE39F07EBE7870DCE124AB30DF3ABD0700A43F75")
+	if nodes[0].Published.Day() != 31 {
+		t.Errorf("expected 31, got: %d", nodes[0].Published.Day())
 	}
+}
 
+func TestMapToMostRecentEntriesErrorOnUnmarshall(t *testing.T) {
+	var readers []*bufio.Reader
+	// create 2 reders for 2 files and test the update.
+	var first = `
+@type tordnsel 1.0
+Downloaded 2024-01-30 13:02:00
+ExitNode FE39F07EBE7870DCE124AB30DF3ABD0700A43F75
+Published 2024-01-30 00:10:50
+LastStatus 2024-01-30 10:00:00
+ExitAddress 185.241.208.231 2024-01-30 10:21:54
+ExitAddress 185.241.208.232 2024-01-30 10:21:55`
+
+	var second = `
+@type tordnsel 1.0
+Downloaded 2024-01-30 13:02:00
+ExitNode FE39F07EBE7870DCE124AB30DF3ABD0700A43F75
+Published NOTADATE LOLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL
+LastStatus 2024-01-31 10:00:00
+ExitAddress 185.241.208.231 2024-01-31 10:21:54
+ExitAddress 185.241.208.232 2024-01-31 10:21:55`
+
+	r1 := strings.NewReader(first)
+	r2 := strings.NewReader(second)
+	readers = append(readers, bufio.NewReader(r1), bufio.NewReader(r2))
+	_, err := mapToMostRecentEntries(readers)
+	if err == nil || !strings.Contains(err.Error(), "unmarshall error for file reader") {
+		t.Errorf("error expected")
+	}
 }
 
 func TestGenerateExitListsURLs(t *testing.T) {

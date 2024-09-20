@@ -134,7 +134,10 @@ func main() {
 	// Performances can probably be improved if read happens in parallel,
 	// However dedup happens leveraging an hashmap, so same entries must be accessed
 	// in a safe way with some sort of semaphore. Measure performances before and after.
-	v := mapToMostRecentEntries(readers)
+	v, err := mapToMostRecentEntries(readers)
+	if err != nil {
+		panic(err)
+	}
 
 	jsonList, err := json.Marshal(&v)
 	if err != nil {
@@ -146,13 +149,17 @@ func main() {
 
 }
 
-func mapToMostRecentEntries(readers []*bufio.Reader) []ExitNode {
+// mapToMostRecentEntries read all the files, unmarshals them into a list of entries,
+// iterate through the entries putting them in a map using the node as a key.
+// This generates a map with the most updated entry for each node leveraging 2 side effects:
+// files and entries inside files are ordered from older to newer (thanks to buildFileList() )
+func mapToMostRecentEntries(readers []*bufio.Reader) ([]ExitNode, error) {
 	updated := make(map[string]ExitNode)
 	for _, reader := range readers {
 
 		exitNodes, err := unmarshall(reader)
 		if err != nil {
-			panic(err)
+			return nil, fmt.Errorf("unmarshall error for file reader: %w", err)
 		}
 
 		for _, n := range exitNodes {
@@ -165,7 +172,7 @@ func mapToMostRecentEntries(readers []*bufio.Reader) []ExitNode {
 	for _, value := range updated {
 		v = append(v, value)
 	}
-	return v
+	return v, nil
 }
 
 func unmarshall(r *bufio.Reader) ([]ExitNode, error) {
