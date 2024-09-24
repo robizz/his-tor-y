@@ -56,11 +56,15 @@ type ExitAddress struct {
 	UpdatedAt   time.Time `json:"UpdatedAt"`
 }
 
-func main() {
+// We do this wrapping to allow all defer()s to run before actually exiting.
+func main() { os.Exit(mainReturnWithCode()) }
+
+func mainReturnWithCode() int {
 	// create main temporary directory
 	dir, err := os.MkdirTemp("", "his-tor-y-")
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("Error: %v", err)
+		return 1
 	}
 	// reenable line below once that the code works :)
 	defer os.RemoveAll(dir)
@@ -71,7 +75,8 @@ func main() {
 
 	dates, err := generateYearDashMonthInterval(start, end)
 	if err != nil {
-		panic(err)
+		fmt.Println("Error: %v", err)
+		return 1
 	}
 
 	// fmt.Println(dates)
@@ -82,18 +87,21 @@ func main() {
 		// Performances can be improved if download happens in parallel.
 		f, err := downloadFile(dir, u)
 		if err != nil {
-			panic(err)
+			fmt.Println("Error: %v", err)
+			return 1
 		}
 		// Performances can be improved if extraction happens in parallel.
 		err = extractFiles(f)
 		if err != nil {
-			panic(err)
+			fmt.Println("Error: %v", err)
+			return 1
 		}
 	}
 
 	filenames, err := buildFileList(dir)
 	if err != nil {
-		panic(err)
+		fmt.Println("Error: %v", err)
+		return 1
 	}
 	// fmt.Println(filenames)
 
@@ -110,7 +118,8 @@ func main() {
 	for i, filename := range filenames {
 		file, err := os.Open(filename)
 		if err != nil {
-			panic(err)
+			fmt.Println("Error: %v", err)
+			return 1
 		}
 		// This should be safe because we use make to create a slice with len(filenames) capacity.
 		// append does not work for some reason here. Study why.
@@ -136,16 +145,19 @@ func main() {
 	// in a safe way with some sort of semaphore. Measure performances before and after.
 	v, err := mapToMostRecentEntries(readers)
 	if err != nil {
-		panic(err)
+		fmt.Println("Error: %v", err)
+		return 1
 	}
 
 	jsonList, err := json.Marshal(&v)
 	if err != nil {
-		panic(err)
+		fmt.Println("Error: %v", err)
+		return 1
 	}
 
 	// Final print do not comment.
 	fmt.Print(string(jsonList))
+	return 0
 
 }
 
