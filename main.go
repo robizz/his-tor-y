@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -18,15 +19,11 @@ import (
 )
 
 // TODO:
-// test file handling functions and see the coverage increasing
-// We need to start some refactorng to extract compaction function from main and allow for unit testing.
-// in the future I would give command line options to tune the resolution of the compaction
-// multiple tars.xz should be downloaded, we are doing this exercise just with one day now
+// command line options to tune the resolution of the compaction
 // when treating multiple days, duplicates management needs to be managed.
 // a final cleanup of all text files must be done
 // are we sure we want to use pointers for exit nodes? for now we have values, maybe a memory footprint and performance instrumentation with a full year of data would be nice
 // When program reaches the desired complexity and tests are in place, apply effective go / practical go / bill kennedy refactoring
-// don't forget testing
 // clean comments
 // variable names are ugly
 // create a cache and allow commands to run in the cache (maybe using a bolt db? an embedded database? an in memory struct?)
@@ -56,9 +53,18 @@ type ExitAddress struct {
 }
 
 // We do this wrapping to allow all defer()s to run before actually exiting.
-func main() { os.Exit(mainReturnWithCode(exitListsURLTemplate)) }
+func main() {
+	var start string
+	var end string
 
-func mainReturnWithCode(urlTemplate string) int {
+	flag.StringVar(&start, "start", "2024-01", "The start month in a range search")
+	flag.StringVar(&end, "end", "2024-03", "The end month in a range search")
+	flag.Parse()
+
+	os.Exit(mainReturnWithCode(exitListsURLTemplate, start, end))
+}
+
+func mainReturnWithCode(urlTemplate, start, end string) int {
 	// create main temporary directory
 	dir, err := os.MkdirTemp("", "his-tor-y-")
 	if err != nil {
@@ -67,10 +73,6 @@ func mainReturnWithCode(urlTemplate string) int {
 	}
 	// reenable line below once that the code works :)
 	defer os.RemoveAll(dir)
-
-	// start and end emulates TUI params for now.
-	start := "2024-01"
-	end := "2024-03"
 
 	dates, err := generateYearDashMonthInterval(start, end)
 	if err != nil {

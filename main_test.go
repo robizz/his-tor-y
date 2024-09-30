@@ -28,7 +28,7 @@ func TestMainReturnWithCode(t *testing.T) {
 	defer ts.Close()
 
 	fakeURLTemplate := ts.URL + "/%s"
-	r := mainReturnWithCode(fakeURLTemplate)
+	r := mainReturnWithCode(fakeURLTemplate, "2024-01", "2024-01")
 	if r != 0 {
 		t.Errorf("unexpected return code: %d", r)
 	}
@@ -43,7 +43,7 @@ func TestMainReturnWithCodeErrorOnDownload(t *testing.T) {
 	defer ts.Close()
 
 	fakeURLTemplate := ts.URL + "/%s"
-	r := mainReturnWithCode(fakeURLTemplate)
+	r := mainReturnWithCode(fakeURLTemplate, "2024-01", "2024-01")
 	if r != 1 {
 		t.Errorf("unexpected return code: %d", r)
 	}
@@ -64,7 +64,7 @@ func TestMainReturnWithCodeErrorMalformedXZ(t *testing.T) {
 	defer ts.Close()
 
 	fakeURLTemplate := ts.URL + "/%s"
-	r := mainReturnWithCode(fakeURLTemplate)
+	r := mainReturnWithCode(fakeURLTemplate, "2024-01", "2024-01")
 	if r != 1 {
 		t.Errorf("unexpected return code: %d", r)
 	}
