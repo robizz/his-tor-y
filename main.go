@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path"
@@ -57,13 +56,13 @@ type ExitAddress struct {
 }
 
 // We do this wrapping to allow all defer()s to run before actually exiting.
-func main() { os.Exit(mainReturnWithCode()) }
+func main() { os.Exit(mainReturnWithCode(exitListsURLTemplate)) }
 
-func mainReturnWithCode() int {
+func mainReturnWithCode(urlTemplate string) int {
 	// create main temporary directory
 	dir, err := os.MkdirTemp("", "his-tor-y-")
 	if err != nil {
-		fmt.Println("Error: %v", err)
+		fmt.Printf("Error: %v\n", err)
 		return 1
 	}
 	// reenable line below once that the code works :)
@@ -75,32 +74,32 @@ func mainReturnWithCode() int {
 
 	dates, err := generateYearDashMonthInterval(start, end)
 	if err != nil {
-		fmt.Println("Error: %v", err)
+		fmt.Printf("Error: %v\n", err)
 		return 1
 	}
 
 	// fmt.Println(dates)
 	// open files for download
 	for _, d := range dates {
-		u := fmt.Sprintf(exitListsURLTemplate, d)
+		u := fmt.Sprintf(urlTemplate, d)
 		// fmt.Println(u)
 		// Performances can be improved if download happens in parallel.
 		f, err := downloadFile(dir, u)
 		if err != nil {
-			fmt.Println("Error: %v", err)
+			fmt.Printf("Error: %v\n", err)
 			return 1
 		}
 		// Performances can be improved if extraction happens in parallel.
 		err = extractFiles(f)
 		if err != nil {
-			fmt.Println("Error: %v", err)
+			fmt.Printf("Error: %v\n", err)
 			return 1
 		}
 	}
 
 	filenames, err := buildFileList(dir)
 	if err != nil {
-		fmt.Println("Error: %v", err)
+		fmt.Printf("Error: %v\n", err)
 		return 1
 	}
 	// fmt.Println(filenames)
@@ -118,7 +117,7 @@ func mainReturnWithCode() int {
 	for i, filename := range filenames {
 		file, err := os.Open(filename)
 		if err != nil {
-			fmt.Println("Error: %v", err)
+			fmt.Printf("Error: %v\n", err)
 			return 1
 		}
 		// This should be safe because we use make to create a slice with len(filenames) capacity.
@@ -145,13 +144,13 @@ func mainReturnWithCode() int {
 	// in a safe way with some sort of semaphore. Measure performances before and after.
 	v, err := mapToMostRecentEntries(readers)
 	if err != nil {
-		fmt.Println("Error: %v", err)
+		fmt.Printf("Error: %v\n", err)
 		return 1
 	}
 
 	jsonList, err := json.Marshal(&v)
 	if err != nil {
-		fmt.Println("Error: %v", err)
+		fmt.Printf("Error: %v\n", err)
 		return 1
 	}
 
