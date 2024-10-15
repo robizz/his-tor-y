@@ -1,4 +1,4 @@
-package parse
+package exitnode
 
 import (
 	"bufio"
@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-// TestUnmarshall tests that our unmarshal business logic is working correctly.
-func TestUnmarshall(t *testing.T) {
+// TestUnmarshal tests that our unmarshal business logic is working correctly.
+func TestUnmarshal(t *testing.T) {
 
 	var someString = `
 @type tordnsel 1.0
@@ -25,7 +25,7 @@ ExitAddress 194.26.192.64 2024-01-30 11:30:06`
 
 	r := strings.NewReader(someString)
 	b := bufio.NewReader(r)
-	exitNodes, err := Unmarshall(b)
+	exitNodes, err := Unmarshal(b)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -51,8 +51,8 @@ ExitAddress 194.26.192.64 2024-01-30 11:30:06`
 	}
 }
 
-// TestUnmarshall tests that our unmarshal business logic is working correctly.
-func TestUnmarshallErrorsIfBadDateFormat(t *testing.T) {
+// TestUnmarshal tests that our unmarshal business logic is working correctly.
+func TestUnmarshalErrorsIfBadDateFormat(t *testing.T) {
 
 	tests := []struct {
 		torNodes              string
@@ -94,7 +94,7 @@ ExitAddress 185.241.208.231 ERROR-01-30 10:21:54
 		t.Run("should error with: "+tt.expectedErrorContains, func(t *testing.T) {
 			r := strings.NewReader(tt.torNodes)
 			b := bufio.NewReader(r)
-			_, err := Unmarshall(b)
+			_, err := Unmarshal(b)
 			if err == nil || !strings.Contains(err.Error(), tt.expectedErrorContains) {
 				t.Errorf("marshall expected error should contain %v", tt.expectedErrorContains)
 			}

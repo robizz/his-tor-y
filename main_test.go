@@ -239,5 +239,3 @@ func TestBuildFileListError(t *testing.T) {
 	}
 
 }
-
-

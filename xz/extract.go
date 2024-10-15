@@ -68,5 +68,4 @@ func ExtractFiles(fileURI string) error {
 			}
 		}
 	}
-
 }

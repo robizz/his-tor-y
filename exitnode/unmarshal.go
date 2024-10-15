@@ -1,4 +1,4 @@
-package parse
+package exitnode
 
 import (
 	"bufio"
@@ -20,7 +20,7 @@ type ExitAddress struct {
 	UpdatedAt   time.Time `json:"UpdatedAt"`
 }
 
-func Unmarshall(r *bufio.Reader) ([]ExitNode, error) {
+func Unmarshal(r *bufio.Reader) ([]ExitNode, error) {
 	exitNodes := []ExitNode{}
 	var exitNode ExitNode
 	for {

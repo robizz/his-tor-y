@@ -11,12 +11,13 @@ import (
 	"time"
 
 	"github.com/robizz/his-tor-y/download"
-	"github.com/robizz/his-tor-y/parse"
+	"github.com/robizz/his-tor-y/exitnode"
 	"github.com/robizz/his-tor-y/xz"
 )
 
 // TODO:
 // probably the generate file list should go in the extract package and be a deeper module...
+// also the nodes structure make the package parse dumb as a name mmmm
 /*
 packages proposal:
 - command
@@ -161,11 +162,11 @@ func mainReturnWithCode(urlTemplate, start, end string) int {
 // iterate through the entries putting them in a map using the node as a key.
 // This generates a map with the most updated entry for each node leveraging 2 side effects:
 // files and entries inside files are ordered from older to newer (thanks to buildFileList() )
-func mapToMostRecentEntries(readers []*bufio.Reader) ([]parse.ExitNode, error) {
-	updated := make(map[string]parse.ExitNode)
+func mapToMostRecentEntries(readers []*bufio.Reader) ([]exitnode.ExitNode, error) {
+	updated := make(map[string]exitnode.ExitNode)
 	for _, reader := range readers {
 
-		exitNodes, err := parse.Unmarshall(reader)
+		exitNodes, err := exitnode.Unmarshal(reader)
 		if err != nil {
 			return nil, fmt.Errorf("unmarshall error for file reader: %w", err)
 		}
@@ -176,7 +177,7 @@ func mapToMostRecentEntries(readers []*bufio.Reader) ([]parse.ExitNode, error) {
 
 	}
 
-	v := make([]parse.ExitNode, 0, len(updated))
+	v := make([]exitnode.ExitNode, 0, len(updated))
 	for _, value := range updated {
 		v = append(v, value)
 	}
