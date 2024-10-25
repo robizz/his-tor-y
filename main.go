@@ -7,11 +7,11 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/robizz/his-tor-y/download"
 	"github.com/robizz/his-tor-y/exitnode"
+	"github.com/robizz/his-tor-y/read"
 	"github.com/robizz/his-tor-y/xz"
 )
 
@@ -35,6 +35,7 @@ packages proposal:
 // clean comments
 // variable names are ugly
 // create a cache and allow commands to run in the cache (maybe using a bolt db? an embedded database? an in memory struct?)
+// the in memory struct could be also a zipped json or array of zipped items of a struct that you decompress on the fly, perf it would be nice.
 // command should be silent to use pipe or output redirect. errors should be on stderr
 // errors should be constant errors like dave cheney suggests
 // we need an integration test to test the whole flow
@@ -95,42 +96,20 @@ func mainReturnWithCode(urlTemplate, start, end string) int {
 		}
 	}
 
-	filenames, err := buildFileList(dir)
+	// ------
+
+	// this business logic here needs to be refactored into a package that exposes a "reader" obj that tracks all the
+	// opened files and exposes a method to close them so that I can embed them in a defer function
+
+	fileReader, err := read.NewFileListReader(dir)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return 1
 	}
-	// fmt.Println(filenames)
 
-	// fmt.Println(file)
-	// Opening a file
-	// Creating a Reader and reading the file line by line.
-	// this basically acts as remove duplicates
-	//print as list
-	// We created a dict, key is ExitNode AKA node id, and we leverage files being ordered by date during
-	// filepath.walk so that looping through all files should generate a map containing nodes with last update
-	// for each node.
-	files := make([]*os.File, len(filenames))
-	readers := make([]*bufio.Reader, len(filenames))
-	for i, filename := range filenames {
-		file, err := os.Open(filename)
-		if err != nil {
-			fmt.Printf("Error: %v\n", err)
-			return 1
-		}
-		// This should be safe because we use make to create a slice with len(filenames) capacity.
-		// append does not work for some reason here. Study why.
-		readers[i] = bufio.NewReader(file)
-		// We are going to use this list of files to close them all.
-		files[i] = file
-		// test if this defer actually works.
-		// defer file.Close()
-	}
-	// Close all opened files before exiting
-	// is this correct? Investigate.
-	for _, file := range files {
-		defer file.Close()
-	}
+	defer fileReader.Close()
+
+	// ---------
 
 	// mapToMostRecentEntries is going to be just a functionality that answers a question like:
 	// Is this IP a tor exit node NOW?
@@ -140,7 +119,7 @@ func mainReturnWithCode(urlTemplate, start, end string) int {
 	// Performances can probably be improved if read happens in parallel,
 	// However dedup happens leveraging an hashmap, so same entries must be accessed
 	// in a safe way with some sort of semaphore. Measure performances before and after.
-	v, err := mapToMostRecentEntries(readers)
+	v, err := mapToMostRecentEntries(fileReader.Readers)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return 1
@@ -182,26 +161,6 @@ func mapToMostRecentEntries(readers []*bufio.Reader) ([]exitnode.ExitNode, error
 		v = append(v, value)
 	}
 	return v, nil
-}
-
-// buildFileList recursively walks inside a folder to generate the list of all
-// files inside a folder tree. Items in the list comes out ordered.
-func buildFileList(dir string) ([]string, error) {
-	fileList := []string{}
-	err := filepath.Walk(dir,
-		func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			if !info.IsDir() {
-				fileList = append(fileList, path)
-			}
-			return nil
-		})
-	if err != nil {
-		return nil, err
-	}
-	return fileList, nil
 }
 
 func generateYearDashMonthInterval(start, end string) ([]string, error) {
