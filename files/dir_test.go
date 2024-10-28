@@ -1,4 +1,4 @@
-package read
+package files
 
 import (
 	"os"
@@ -28,7 +28,7 @@ func TestBuildFileList(t *testing.T) {
 
 	defer os.RemoveAll(dir1)
 
-	d := DirReader{
+	d := Reader{
 		Dir: dir1,
 	}
 
@@ -61,7 +61,7 @@ func TestBuildFileListError(t *testing.T) {
 		t.Errorf("error setup tmp dir permissions:  %v", err)
 	}
 
-	d := DirReader{
+	d := Reader{
 		Dir: dir1,
 	}
 

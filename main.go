@@ -11,7 +11,7 @@ import (
 
 	"github.com/robizz/his-tor-y/download"
 	"github.com/robizz/his-tor-y/exitnode"
-	"github.com/robizz/his-tor-y/read"
+	"github.com/robizz/his-tor-y/files"
 	"github.com/robizz/his-tor-y/xz"
 )
 
@@ -101,13 +101,13 @@ func mainReturnWithCode(urlTemplate, start, end string) int {
 	// this business logic here needs to be refactored into a package that exposes a "reader" obj that tracks all the
 	// opened files and exposes a method to close them so that I can embed them in a defer function
 
-	fileReader, err := read.NewFileListReader(dir)
+	nodeFiles, err := files.NewReader(dir)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return 1
 	}
 
-	defer fileReader.Close()
+	defer nodeFiles.Close()
 
 	// ---------
 
@@ -119,7 +119,7 @@ func mainReturnWithCode(urlTemplate, start, end string) int {
 	// Performances can probably be improved if read happens in parallel,
 	// However dedup happens leveraging an hashmap, so same entries must be accessed
 	// in a safe way with some sort of semaphore. Measure performances before and after.
-	v, err := mapToMostRecentEntries(fileReader.Readers)
+	v, err := mapToMostRecentEntries(nodeFiles.Readers)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return 1

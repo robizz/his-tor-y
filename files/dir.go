@@ -1,4 +1,4 @@
-package read
+package files
 
 import (
 	"bufio"
@@ -10,19 +10,19 @@ import (
 // you need to fix the tests to use this new concept
 // then you need to figure out a good naming for stuff here.
 
-// DirReader is a struct that helps scenning a dir and giving back byte readers
+// Reader is a struct that helps scenning a dir and giving back byte readers
 // while keeping reference of al the opened files and readers
-type DirReader struct {
+type Reader struct {
 	Dir     string
 	Files   []*os.File
 	Readers []*bufio.Reader
 }
 
-func NewFileListReader(dir string) (*DirReader, error) {
-	d := &DirReader{
+func NewReader(dir string) (*Reader, error) {
+	d := &Reader{
 		Dir: dir,
 	}
-	err := d.scan()
+	err := d.list()
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +30,7 @@ func NewFileListReader(dir string) (*DirReader, error) {
 }
 
 // how should I name this method? get()? look at dave cheney
-func (f *DirReader) scan() error {
+func (f *Reader) list() error {
 
 	filenames, err := f.buildFileList()
 	if err != nil {
@@ -60,7 +60,7 @@ func (f *DirReader) scan() error {
 	return nil
 }
 
-func (f *DirReader) Close() {
+func (f *Reader) Close() {
 	for _, file := range f.Files {
 		// I guess nothing we can do if we get an error here...
 		file.Close()
@@ -69,7 +69,7 @@ func (f *DirReader) Close() {
 
 // BuildFileList recursively walks inside a folder to generate the list of all
 // files inside a folder tree. Items in the list comes out ordered.
-func (f *DirReader) buildFileList() ([]string, error) {
+func (f *Reader) buildFileList() ([]string, error) {
 	fileList := []string{}
 	err := filepath.Walk(f.Dir,
 		func(path string, info os.FileInfo, err error) error {
