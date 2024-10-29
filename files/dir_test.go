@@ -5,6 +5,42 @@ import (
 	"testing"
 )
 
+func TestNewReader(t *testing.T) {
+	dir1, err := os.MkdirTemp("", "")
+	if err != nil {
+		t.Errorf("error setup tmp dir:  %v", err)
+	}
+
+	dir2, err := os.MkdirTemp(dir1, "")
+	if err != nil {
+		t.Errorf("error setup tmp dir:  %v", err)
+	}
+
+	_, err = os.Create(dir2 + string(os.PathSeparator) + "file1")
+	if err != nil {
+		t.Errorf("error setup tmp dir2:  %v", err)
+	}
+
+	_, err = os.Create(dir2 + string(os.PathSeparator) + "file2")
+	if err != nil {
+		t.Errorf("error setup tmp dir2:  %v", err)
+	}
+
+	defer os.RemoveAll(dir1)
+
+	r, err := NewReader(dir1)
+	if err != nil {
+		t.Errorf("error NewReader:  %v", err)
+	}
+
+	defer r.Close()
+
+	if len(r.Readers) != 2 {
+		t.Errorf("expected 2 readers got:  %d", len(r.Readers))
+	}
+
+}
+
 func TestBuildFileList(t *testing.T) {
 	dir1, err := os.MkdirTemp("", "")
 	if err != nil {
