@@ -44,24 +44,47 @@ packages proposal:
 // generate go doc
 // END TODO
 
-// exitListsURL contains the template for the exit node compressed files URL.
-// The string is supposed to be:
-// https://collector.torproject.org/archive/exit-lists/exit-list-2024-01.tar.xz
-const exitListsURLTemplate = "https://collector.torproject.org/archive/exit-lists/exit-list-%s.tar.xz"
+// Config structs
+type ExitNode struct {
+	// DownloadURLTemplate contains the template for the exit node compressed files URL.
+	// The string is supposed to be:
+	// https://collector.torproject.org/archive/exit-lists/exit-list-2024-01.tar.xz
+	DownloadURLTemplate string
+}
+
+type Config struct {
+	ExitNode ExitNode
+}
+
+type NowCommand struct {
+	StartDate string
+	EndDate   string
+}
 
 // We do this wrapping to allow all defer()s to run before actually exiting.
 func main() {
-	var start string
-	var end string
 
-	flag.StringVar(&start, "start", "2024-01", "The start month in a range search")
-	flag.StringVar(&end, "end", "2024-03", "The end month in a range search")
+	// Which command?
+	comm := NowCommand{}
+	flag.StringVar(&comm.StartDate, "start", "2024-01", "The start month in a range search")
+	flag.StringVar(&comm.EndDate, "end", "2024-03", "The end month in a range search")
 	flag.Parse()
 
-	os.Exit(mainReturnWithCode(exitListsURLTemplate, start, end))
+	// Which configuration?
+	conf := Config{
+		ExitNode: ExitNode{DownloadURLTemplate: "https://collector.torproject.org/archive/exit-lists/exit-list-%s.tar.xz"},
+	}
+
+	// main
+	os.Exit(mainReturnWithCode(conf, comm))
 }
 
-func mainReturnWithCode(urlTemplate, start, end string) int {
+// mainReturnWithCode wraps the whole code and returns error codes based n errors or 0
+// if everything is ok (terminal output is done by System.out stuff)
+// the function needs to be integration test friendly tho, meaning we should be
+// able to pass parameters and configuration (structs?)
+func mainReturnWithCode(conf Config, comm NowCommand) int {
+
 	// create main temporary directory
 	dir, err := os.MkdirTemp("", "his-tor-y-")
 	if err != nil {
@@ -71,7 +94,7 @@ func mainReturnWithCode(urlTemplate, start, end string) int {
 	// reenable line below once that the code works :)
 	defer os.RemoveAll(dir)
 
-	dates, err := generateYearDashMonthInterval(start, end)
+	dates, err := generateYearDashMonthInterval(comm.StartDate, comm.EndDate)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		return 1
@@ -80,7 +103,7 @@ func mainReturnWithCode(urlTemplate, start, end string) int {
 	// fmt.Println(dates)
 	// open files for download
 	for _, d := range dates {
-		u := fmt.Sprintf(urlTemplate, d)
+		u := fmt.Sprintf(conf.ExitNode.DownloadURLTemplate, d)
 		// fmt.Println(u)
 		// Performances can be improved if download happens in parallel.
 		f, err := download.DownloadFile(dir, u)
@@ -96,11 +119,6 @@ func mainReturnWithCode(urlTemplate, start, end string) int {
 		}
 	}
 
-	// ------
-
-	// this business logic here needs to be refactored into a package that exposes a "reader" obj that tracks all the
-	// opened files and exposes a method to close them so that I can embed them in a defer function
-
 	nodeFiles, err := files.NewReader(dir)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
@@ -110,7 +128,6 @@ func mainReturnWithCode(urlTemplate, start, end string) int {
 	defer nodeFiles.Close()
 
 	// ---------
-
 	// mapToMostRecentEntries is going to be just a functionality that answers a question like:
 	// Is this IP a tor exit node NOW?
 	// doing
