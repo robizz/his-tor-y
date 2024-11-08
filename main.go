@@ -27,6 +27,12 @@ packages proposal:
 - transform
 - output
 */
+
+// related to commands: I need:
+// - a way to define a command interface with related inputs and outputs
+// - a way to inject specific flags to specific commands
+// - a way to define a strategy pattern kinda of approach to know which command to instantiate or launch
+
 // command line options to tune the resolution of the compaction
 // when treating multiple days, duplicates management needs to be managed.
 // a final cleanup of all text files must be done
@@ -56,6 +62,7 @@ type Config struct {
 	ExitNode ExitNode
 }
 
+// Command struct
 type NowCommand struct {
 	StartDate string
 	EndDate   string
@@ -64,19 +71,31 @@ type NowCommand struct {
 // We do this wrapping to allow all defer()s to run before actually exiting.
 func main() {
 
-	// Which command?
-	comm := NowCommand{}
-	flag.StringVar(&comm.StartDate, "start", "2024-01", "The start month in a range search")
-	flag.StringVar(&comm.EndDate, "end", "2024-03", "The end month in a range search")
-	flag.Parse()
-
 	// Which configuration?
 	conf := Config{
 		ExitNode: ExitNode{DownloadURLTemplate: "https://collector.torproject.org/archive/exit-lists/exit-list-%s.tar.xz"},
 	}
 
-	// main
-	os.Exit(mainReturnWithCode(conf, comm))
+	// Which command?
+	comm := NowCommand{}
+	now := flag.NewFlagSet("now", flag.ContinueOnError)
+	now.StringVar(&comm.StartDate,"start", "2024-01", "The start month in a range search")
+	now.StringVar(&comm.EndDate,"end", "2024-03", "The end month in a range search")
+	// f2 := flag.NewFlagSet("help", flag.ContinueOnError)
+	// loud := f2.Bool("loud", false, "")
+
+	switch os.Args[1] {
+	case "now":
+		if err := now.Parse(os.Args[2:]); err != nil {
+			fmt.Println("ay")
+		} else {
+			os.Exit(mainReturnWithCode(conf, comm))
+		}
+	default:
+		fmt.Println("ay")
+		os.Exit(1)
+	}
+
 }
 
 // mainReturnWithCode wraps the whole code and returns error codes based n errors or 0
