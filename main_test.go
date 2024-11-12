@@ -32,12 +32,14 @@ func TestMainReturnWithCode(t *testing.T) {
 		},
 	}
 
-	comm := NowCommand{
-		StartDate: "2024-01",
-		EndDate:   "2024-01",
+	args := []string{
+		"",
+		"now",
+		"2024-01",
+		"2024-01",
 	}
 
-	r := mainReturnWithCode(conf, comm)
+	r := mainReturnWithCode(args, conf)
 	if r != 0 {
 		t.Errorf("unexpected return code: %d", r)
 	}
@@ -58,12 +60,14 @@ func TestMainReturnWithCodeErrorOnDownload(t *testing.T) {
 		},
 	}
 
-	comm := NowCommand{
-		StartDate: "2024-01",
-		EndDate:   "2024-01",
+	args := []string{
+		"",
+		"now",
+		"2024-01",
+		"2024-01",
 	}
 
-	r := mainReturnWithCode(conf, comm)
+	r := mainReturnWithCode(args, conf)
 	if r != 1 {
 		t.Errorf("unexpected return code: %d", r)
 	}
@@ -90,12 +94,14 @@ func TestMainReturnWithCodeErrorMalformedXZ(t *testing.T) {
 		},
 	}
 
-	comm := NowCommand{
-		StartDate: "2024-01",
-		EndDate:   "2024-01",
+	args := []string{
+		"",
+		"now",
+		"2024-01",
+		"2024-01",
 	}
 
-	r := mainReturnWithCode(conf, comm)
+	r := mainReturnWithCode(args, conf)
 	if r != 1 {
 		t.Errorf("unexpected return code: %d", r)
 	}

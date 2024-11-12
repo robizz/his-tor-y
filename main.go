@@ -76,25 +76,7 @@ func main() {
 		ExitNode: ExitNode{DownloadURLTemplate: "https://collector.torproject.org/archive/exit-lists/exit-list-%s.tar.xz"},
 	}
 
-	// Which command?
-	comm := NowCommand{}
-	now := flag.NewFlagSet("now", flag.ContinueOnError)
-	now.StringVar(&comm.StartDate,"start", "2024-01", "The start month in a range search")
-	now.StringVar(&comm.EndDate,"end", "2024-03", "The end month in a range search")
-	// f2 := flag.NewFlagSet("help", flag.ContinueOnError)
-	// loud := f2.Bool("loud", false, "")
-
-	switch os.Args[1] {
-	case "now":
-		if err := now.Parse(os.Args[2:]); err != nil {
-			fmt.Println("ay")
-		} else {
-			os.Exit(mainReturnWithCode(conf, comm))
-		}
-	default:
-		fmt.Println("ay")
-		os.Exit(1)
-	}
+	os.Exit(mainReturnWithCode(os.Args, conf))
 
 }
 
@@ -102,13 +84,40 @@ func main() {
 // if everything is ok (terminal output is done by System.out stuff)
 // the function needs to be integration test friendly tho, meaning we should be
 // able to pass parameters and configuration (structs?)
-func mainReturnWithCode(conf Config, comm NowCommand) int {
+func mainReturnWithCode(args []string, conf Config) int {
 
+	// Which command?
+	comm := NowCommand{}
+	now := flag.NewFlagSet("now", flag.ContinueOnError)
+	now.StringVar(&comm.StartDate, "start", "2024-01", "The start month in a range search")
+	now.StringVar(&comm.EndDate, "end", "2024-03", "The end month in a range search")
+	// f2 := flag.NewFlagSet("help", flag.ContinueOnError)
+	// loud := f2.Bool("loud", false, "")
+
+	switch args[1] {
+	case "now":
+		if err := now.Parse(args[2:]); err != nil {
+			fmt.Println("ay")
+		} else {
+			err := runNowCommand(conf, comm)
+			if err != nil {
+				fmt.Println(err)
+				return 1
+			}
+		}
+	default:
+		fmt.Println("ay")
+		return 1
+	}
+	return 0
+}
+
+func runNowCommand(conf Config, comm NowCommand) error {
 	// create main temporary directory
 	dir, err := os.MkdirTemp("", "his-tor-y-")
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
-		return 1
+		return err
 	}
 	// reenable line below once that the code works :)
 	defer os.RemoveAll(dir)
@@ -116,7 +125,7 @@ func mainReturnWithCode(conf Config, comm NowCommand) int {
 	dates, err := generateYearDashMonthInterval(comm.StartDate, comm.EndDate)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
-		return 1
+		return err
 	}
 
 	// fmt.Println(dates)
@@ -128,20 +137,22 @@ func mainReturnWithCode(conf Config, comm NowCommand) int {
 		f, err := download.DownloadFile(dir, u)
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)
-			return 1
+			return err
+
 		}
 		// Performances can be improved if extraction happens in parallel.
 		err = xz.ExtractFiles(f)
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)
-			return 1
+			return err
 		}
 	}
 
 	nodeFiles, err := files.NewReader(dir)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
-		return 1
+		return err
+
 	}
 
 	defer nodeFiles.Close()
@@ -158,19 +169,19 @@ func mainReturnWithCode(conf Config, comm NowCommand) int {
 	v, err := mapToMostRecentEntries(nodeFiles.Readers)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
-		return 1
+		return err
+
 	}
 
 	jsonList, err := json.Marshal(&v)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
-		return 1
+		return err
 	}
 
 	// Final print do not comment.
 	fmt.Print(string(jsonList))
-	return 0
-
+	return nil
 }
 
 // mapToMostRecentEntries read all the files, unmarshals them into a list of entries,
