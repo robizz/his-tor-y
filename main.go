@@ -1,18 +1,11 @@
 package main
 
 import (
-	"bufio"
-	"encoding/json"
-	"errors"
-	"flag"
 	"fmt"
 	"os"
-	"time"
 
-	"github.com/robizz/his-tor-y/download"
-	"github.com/robizz/his-tor-y/exitnode"
-	"github.com/robizz/his-tor-y/files"
-	"github.com/robizz/his-tor-y/xz"
+	"github.com/robizz/his-tor-y/command"
+	"github.com/robizz/his-tor-y/conf"
 )
 
 // TODO:
@@ -50,33 +43,15 @@ packages proposal:
 // generate go doc
 // END TODO
 
-// Config structs
-type ExitNode struct {
-	// DownloadURLTemplate contains the template for the exit node compressed files URL.
-	// The string is supposed to be:
-	// https://collector.torproject.org/archive/exit-lists/exit-list-2024-01.tar.xz
-	DownloadURLTemplate string
-}
-
-type Config struct {
-	ExitNode ExitNode
-}
-
-// Command struct
-type NowCommand struct {
-	StartDate string
-	EndDate   string
-}
-
 // We do this wrapping to allow all defer()s to run before actually exiting.
 func main() {
 
 	// Which configuration?
-	conf := Config{
-		ExitNode: ExitNode{DownloadURLTemplate: "https://collector.torproject.org/archive/exit-lists/exit-list-%s.tar.xz"},
+	conf := conf.Config{
+		ExitNode: conf.ExitNode{DownloadURLTemplate: "https://collector.torproject.org/archive/exit-lists/exit-list-%s.tar.xz"},
 	}
 
-	os.Exit(mainReturnWithCode(os.Args, conf))
+	os.Exit(mainReturnWithCode(conf, os.Args))
 
 }
 
@@ -84,158 +59,16 @@ func main() {
 // if everything is ok (terminal output is done by System.out stuff)
 // the function needs to be integration test friendly tho, meaning we should be
 // able to pass parameters and configuration (structs?)
-func mainReturnWithCode(args []string, conf Config) int {
-
-	// Which command?
-	comm := NowCommand{}
-	now := flag.NewFlagSet("now", flag.ContinueOnError)
-	now.StringVar(&comm.StartDate, "start", "2024-01", "The start month in a range search")
-	now.StringVar(&comm.EndDate, "end", "2024-03", "The end month in a range search")
-	// f2 := flag.NewFlagSet("help", flag.ContinueOnError)
-	// loud := f2.Bool("loud", false, "")
+func mainReturnWithCode(conf conf.Config, args []string) int {
 
 	switch args[1] {
 	case "now":
-		if err := now.Parse(args[2:]); err != nil {
-			fmt.Println("ay")
-		} else {
-			err := runNowCommand(conf, comm)
-			if err != nil {
-				fmt.Println(err)
-				return 1
-			}
-		}
+		return command.Now(conf, args)
+
+	// command not found
+	// I should print the help here
 	default:
 		fmt.Println("ay")
 		return 1
 	}
-	return 0
-}
-
-func runNowCommand(conf Config, comm NowCommand) error {
-	// create main temporary directory
-	dir, err := os.MkdirTemp("", "his-tor-y-")
-	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-		return err
-	}
-	// reenable line below once that the code works :)
-	defer os.RemoveAll(dir)
-
-	dates, err := generateYearDashMonthInterval(comm.StartDate, comm.EndDate)
-	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-		return err
-	}
-
-	// fmt.Println(dates)
-	// open files for download
-	for _, d := range dates {
-		u := fmt.Sprintf(conf.ExitNode.DownloadURLTemplate, d)
-		// fmt.Println(u)
-		// Performances can be improved if download happens in parallel.
-		f, err := download.DownloadFile(dir, u)
-		if err != nil {
-			fmt.Printf("Error: %v\n", err)
-			return err
-
-		}
-		// Performances can be improved if extraction happens in parallel.
-		err = xz.ExtractFiles(f)
-		if err != nil {
-			fmt.Printf("Error: %v\n", err)
-			return err
-		}
-	}
-
-	nodeFiles, err := files.NewReader(dir)
-	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-		return err
-
-	}
-
-	defer nodeFiles.Close()
-
-	// ---------
-	// mapToMostRecentEntries is going to be just a functionality that answers a question like:
-	// Is this IP a tor exit node NOW?
-	// doing
-	// `go run . [with maybe an -all parameter ] > nodes.json && jq '.[] | select(.ExitAddresses[].ExitAddress == "107.189.31.187")' nodes.json
-	// of caourse the date parameters for his-tor-y should be configured properly.
-	// Performances can probably be improved if read happens in parallel,
-	// However dedup happens leveraging an hashmap, so same entries must be accessed
-	// in a safe way with some sort of semaphore. Measure performances before and after.
-	v, err := mapToMostRecentEntries(nodeFiles.Readers)
-	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-		return err
-
-	}
-
-	jsonList, err := json.Marshal(&v)
-	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-		return err
-	}
-
-	// Final print do not comment.
-	fmt.Print(string(jsonList))
-	return nil
-}
-
-// mapToMostRecentEntries read all the files, unmarshals them into a list of entries,
-// iterate through the entries putting them in a map using the node as a key.
-// This generates a map with the most updated entry for each node leveraging 2 side effects:
-// files and entries inside files are ordered from older to newer (thanks to buildFileList() )
-func mapToMostRecentEntries(readers []*bufio.Reader) ([]exitnode.ExitNode, error) {
-	updated := make(map[string]exitnode.ExitNode)
-	for _, reader := range readers {
-
-		exitNodes, err := exitnode.Unmarshal(reader)
-		if err != nil {
-			return nil, fmt.Errorf("unmarshall error for file reader: %w", err)
-		}
-
-		for _, n := range exitNodes {
-			updated[n.ExitNode] = n
-		}
-
-	}
-
-	v := make([]exitnode.ExitNode, 0, len(updated))
-	for _, value := range updated {
-		v = append(v, value)
-	}
-	return v, nil
-}
-
-func generateYearDashMonthInterval(start, end string) ([]string, error) {
-
-	// Define the date format.
-	const yearDashMonth = "2006-01"
-
-	startDate, err := time.Parse(yearDashMonth, start)
-	if err != nil {
-		return nil, fmt.Errorf("start date parse error: %w", err)
-	}
-
-	endDate, err := time.Parse(yearDashMonth, end)
-	if err != nil {
-		return nil, fmt.Errorf("end date parse error: %w", err)
-	}
-
-	if startDate.After(endDate) {
-		// This should be implemented using
-		// constant errors: https://dave.cheney.net/2016/04/07/constant-errors.
-		return nil, errors.New("start date is after end date")
-	}
-
-	var dates []string
-	for d := startDate; !d.After(endDate); d = d.AddDate(0, 1, 0) {
-		dates = append(dates, d.Format(yearDashMonth))
-	}
-
-	return dates, nil
-
 }
