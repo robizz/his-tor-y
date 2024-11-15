@@ -9,27 +9,35 @@ import (
 )
 
 // Command struct
-type NowFlags struct {
+type Now struct {
 	StartDate string
 	EndDate   string
+	Conf      conf.Config
 }
 
-func Now(conf conf.Config, args []string) int {
+func NewNow(conf conf.Config, args []string) (*Now, error) {
 
 	// Which command?
-	nowFlags := NowFlags{}
+	now := &Now{}
+	now.Conf = conf
+
 	set := flag.NewFlagSet("now", flag.ContinueOnError)
-	set.StringVar(&nowFlags.StartDate, "start", "2024-01", "The start month in a range search")
-	set.StringVar(&nowFlags.EndDate, "end", "2024-03", "The end month in a range search")
+	set.StringVar(&now.StartDate, "start", "2024-01", "The start month in a range search")
+	set.StringVar(&now.EndDate, "end", "2024-03", "The end month in a range search")
 	// f2 := flag.NewFlagSet("help", flag.ContinueOnError)
 	// loud := f2.Bool("loud", false, "")
 
 	if err := set.Parse(args[2:]); err != nil {
-		fmt.Printf("Error %v\n", err)
-		return 1
+		return nil, err
 	}
 
-	out, err := business.Now(conf.ExitNode.DownloadURLTemplate, nowFlags.StartDate, nowFlags.EndDate)
+	return now, nil
+}
+
+// implements command interface in main package
+func (n *Now) Execute() int {
+
+	out, err := business.Now(n.Conf.ExitNode.DownloadURLTemplate, n.StartDate, n.EndDate)
 
 	if err != nil {
 		fmt.Printf("Error %v\n", err)

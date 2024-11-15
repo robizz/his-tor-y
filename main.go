@@ -43,6 +43,12 @@ packages proposal:
 // generate go doc
 // END TODO
 
+// We declare here the "command interface" because we abide to the rules:
+// “Go interfaces generally belong in the package that uses values of the interface type, not the package that implements those values.”
+type Command interface {
+	Execute() int
+}
+
 // We do this wrapping to allow all defer()s to run before actually exiting.
 func main() {
 
@@ -61,14 +67,22 @@ func main() {
 // able to pass parameters and configuration (structs?)
 func mainReturnWithCode(conf conf.Config, args []string) int {
 
+	var c Command
+	var err error
 	switch args[1] {
 	case "now":
-		return command.Now(conf, args)
+		c, err = command.NewNow(conf, args)
 
 	// command not found
 	// I should print the help here
+	// but the help has to list available commands with their options tho
 	default:
 		fmt.Println("ay")
 		return 1
 	}
+	if err != nil {
+		fmt.Printf("Error %v\n", err)
+		return 1
+	}
+	return c.Execute()
 }
