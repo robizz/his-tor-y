@@ -4,8 +4,8 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/robizz/his-tor-y/business"
 	"github.com/robizz/his-tor-y/conf"
+	"github.com/robizz/his-tor-y/core"
 )
 
 // Command struct
@@ -37,7 +37,7 @@ func NewNow(conf conf.Config, args []string) (*Now, error) {
 // implements command interface in main package
 func (n *Now) Execute() int {
 
-	out, err := business.Now(n.Conf.ExitNode.DownloadURLTemplate, n.StartDate, n.EndDate)
+	out, err := core.Now(n.Conf.ExitNode.DownloadURLTemplate, n.StartDate, n.EndDate)
 
 	if err != nil {
 		fmt.Printf("Error %v\n", err)
