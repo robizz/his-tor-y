@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
+	"github.com/robizz/his-tor-y/arghandler"
 	"github.com/robizz/his-tor-y/command"
 	"github.com/robizz/his-tor-y/conf"
 )
@@ -67,22 +67,10 @@ func main() {
 // able to pass parameters and configuration (structs?)
 func mainReturnWithCode(conf conf.Config, args []string) int {
 
-	var c Command
-	var err error
-	switch args[1] {
-	case "now":
-		c, err = command.NewNow(conf, args)
+	// create router and register commands
+	r := arghandler.NewRouter()
+	r.Register("now", command.NewNow())
 
-	// command not found
-	// I should print the help here
-	// but the help has to list available commands with their options tho
-	default:
-		fmt.Println("ay")
-		return 1
-	}
-	if err != nil {
-		fmt.Printf("Error %v\n", err)
-		return 1
-	}
-	return c.Execute()
+	//execute based on args
+	return r.Execute(conf, args)
 }

@@ -1,6 +1,5 @@
 package conf
 
-
 // Config structs
 type ExitNode struct {
 	// DownloadURLTemplate contains the template for the exit node compressed files URL.
