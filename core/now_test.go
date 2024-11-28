@@ -1,4 +1,4 @@
-package business
+package core
 
 import (
 	"bufio"
