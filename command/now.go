@@ -13,7 +13,6 @@ type Now struct {
 	StartDate string
 	EndDate   string
 	Conf      conf.Config
-	set       *flag.FlagSet
 }
 
 func NewNow() *Now {
@@ -21,12 +20,11 @@ func NewNow() *Now {
 }
 
 func (n *Now) Parse(conf conf.Config, args []string) error {
+	n.Conf = conf
 
 	set := flag.NewFlagSet("now", flag.ContinueOnError)
 	set.StringVar(&n.StartDate, "start", "2024-01", "The start month in a range search")
 	set.StringVar(&n.EndDate, "end", "2024-03", "The end month in a range search")
-	// f2 := flag.NewFlagSet("help", flag.ContinueOnError)
-	// loud := f2.Bool("loud", false, "")
 
 	if err := set.Parse(args[2:]); err != nil {
 		return err
