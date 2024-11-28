@@ -4,3 +4,6 @@ his-tor-y
 # coverage files
 cover.out
 cover.html
+
+# IDE files
+.vscode/
