@@ -13,6 +13,8 @@ type Now struct {
 	StartDate string
 	EndDate   string
 	Conf      conf.Config
+	// here the command should also support an output writer, that
+	// I'm going to need to test commands output and formatting and stuff
 }
 
 func NewNow() *Now {
@@ -35,7 +37,10 @@ func (n *Now) Parse(conf conf.Config, args []string) error {
 
 // implements command interface in main package
 func (n *Now) Execute() int {
-
+	// What am I supposed to do here?
+	// An interface would require me to abstract the flags you send t core to make them general
+	// or to do even more complicated stuff like "functional options pattern".. just for the sake of testing..
+	// An alternative would be to pass a fake download url as did in core tests
 	out, err := core.Now(n.Conf.ExitNode.DownloadURLTemplate, n.StartDate, n.EndDate)
 
 	if err != nil {
