@@ -41,6 +41,11 @@ packages proposal:
 // Main functionality is: I give you the list of nodes that were found for the time range with the last update inside the time range.
 // another funtionality is "IP History":I give you an IP and a parameter like "days", the tool gives me 0 with formatted list of nodes and dates.
 // generate go doc
+//
+// goroutines for multiple download
+// new command
+// output management
+//
 // END TODO
 
 // We declare here the "command interface" because we abide to the rules:
