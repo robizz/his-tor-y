@@ -4,7 +4,9 @@
 package arghandler
 
 import (
+	"errors"
 	"fmt"
+	"io"
 
 	"github.com/robizz/his-tor-y/conf"
 )
@@ -14,7 +16,7 @@ import (
 // not the package that implements those values.”
 type Command interface {
 	Parse(conf conf.Config, args []string) error
-	Execute() int
+	Execute(io.Writer) error
 	Help() string
 }
 
@@ -34,27 +36,24 @@ func (r *Router) Register(name string, c Command) {
 
 // what about the help here it should run after everything is registered right?
 
-func (r *Router) Execute(conf conf.Config, args []string) int {
+func (r *Router) Execute(conf conf.Config, args []string, stdout io.Writer) error {
 
 	if len(args) < 2 {
-		fmt.Printf("Missing command argument")
-		return 1
+		return errors.New("missing command")
 	}
 
 	c, ok := r.commands[args[1]]
 	if !ok {
-		fmt.Printf("Error command not found")
 		//print help here?
-		return 1
+		return errors.New("command not found")
 
 	}
 
 	err := c.Parse(conf, args)
 
 	if err != nil {
-		fmt.Printf("Error %v\n", err)
-		return 1
+		return fmt.Errorf("parse error: %w", err)
 	}
 
-	return c.Execute()
+	return c.Execute(stdout)
 }

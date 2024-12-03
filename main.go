@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"io"
 	"os"
 
 	"github.com/robizz/his-tor-y/arghandler"
@@ -48,13 +50,14 @@ packages proposal:
 //
 // END TODO
 
-// We declare here the "command interface" because we abide to the rules:
-// “Go interfaces generally belong in the package that uses values of the interface type, not the package that implements those values.”
-type Command interface {
-	Execute() int
-}
+const (
+	// exitFail is the exit code if the program
+	// fails.
+	exitFail = 1
+)
 
 // We do this wrapping to allow all defer()s to run before actually exiting.
+// See https://pace.dev/blog/2020/02/12/why-you-shouldnt-use-func-main-in-golang-by-mat-ryer.html
 func main() {
 
 	// Which configuration?
@@ -62,20 +65,23 @@ func main() {
 		ExitNode: conf.ExitNode{DownloadURLTemplate: "https://collector.torproject.org/archive/exit-lists/exit-list-%s.tar.xz"},
 	}
 
-	os.Exit(mainReturnWithCode(conf, os.Args))
+	if err := run(conf, os.Args, os.Stdout); err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(exitFail)
+	}
 
 }
 
-// mainReturnWithCode wraps the whole code and returns error codes based n errors or 0
+// run wraps the whole code and returns error codes based n errors or 0
 // if everything is ok (terminal output is done by System.out stuff)
 // the function needs to be integration test friendly tho, meaning we should be
 // able to pass parameters and configuration (structs?)
-func mainReturnWithCode(conf conf.Config, args []string) int {
+func run(conf conf.Config, args []string, stdout io.Writer) error {
 
 	// create router and register commands
 	r := arghandler.NewRouter()
 	r.Register("now", command.NewNow())
 
 	//execute based on args
-	return r.Execute(conf, args)
+	return r.Execute(conf, args, stdout)
 }

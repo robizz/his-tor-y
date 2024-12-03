@@ -3,6 +3,7 @@ package command
 import (
 	"flag"
 	"fmt"
+	"io"
 
 	"github.com/robizz/his-tor-y/conf"
 	"github.com/robizz/his-tor-y/core"
@@ -36,7 +37,7 @@ func (n *Now) Parse(conf conf.Config, args []string) error {
 }
 
 // implements command interface in main package
-func (n *Now) Execute() int {
+func (n *Now) Execute(stdout io.Writer) error {
 	// What am I supposed to do here?
 	// An interface would require me to abstract the flags you send t core to make them general
 	// or to do even more complicated stuff like "functional options pattern".. just for the sake of testing..
@@ -44,13 +45,12 @@ func (n *Now) Execute() int {
 	out, err := core.Now(n.Conf.ExitNode.DownloadURLTemplate, n.StartDate, n.EndDate)
 
 	if err != nil {
-		fmt.Printf("Error %v\n", err)
-		return 1
+		return fmt.Errorf("execute error: %w", err)
 	}
-	// Is command package responsible to print the output? if yes should it return 0 right?
-	fmt.Println(out)
-	return 0
 
+	// Is command package responsible to print the output? if yes should it return 0 right?
+	fmt.Fprintf(stdout, "%s", out)
+	return nil
 }
 
 func (n *Now) Help() string {

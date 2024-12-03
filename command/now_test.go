@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/robizz/his-tor-y/conf"
@@ -49,9 +50,9 @@ func TestExecuteNowCoreCall(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error expected to be nil")
 	}
-	r := n.Execute()
-	if r != 0 {
-		t.Fatalf("Expected 0, got: %d", r)
+	err = n.Execute(os.Stdout)
+	if err != nil {
+		t.Fatalf("Expected nil, got: %v", err)
 	}
 }
 
@@ -79,8 +80,8 @@ func TestExecuteErrorOnNowCoreCall(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error expected to be nil")
 	}
-	r := n.Execute()
-	if r != 1 {
-		t.Fatalf("Expected 1, got: %d", r)
+	err = n.Execute(os.Stdout)
+	if err == nil {
+		t.Fatalf("Expected error, got: nil")
 	}
 }
