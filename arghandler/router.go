@@ -4,6 +4,7 @@
 package arghandler
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -15,8 +16,8 @@ import (
 // “Go interfaces generally belong in the package that uses values of the interface type,
 // not the package that implements those values.”
 type Command interface {
-	Parse(conf conf.Config, args []string) error
-	Execute(io.Writer) error
+	Parse(conf.Config, []string) error
+	Execute(context.Context, io.Writer) error
 	Help() string
 }
 
@@ -36,7 +37,7 @@ func (r *Router) Register(name string, c Command) {
 
 // what about the help here it should run after everything is registered right?
 
-func (r *Router) Execute(conf conf.Config, args []string, stdout io.Writer) error {
+func (r *Router) Execute(ctx context.Context, conf conf.Config, args []string, stdout io.Writer) error {
 
 	if len(args) < 2 {
 		return errors.New("missing command")
@@ -55,5 +56,5 @@ func (r *Router) Execute(conf conf.Config, args []string, stdout io.Writer) erro
 		return fmt.Errorf("parse error: %w", err)
 	}
 
-	return c.Execute(stdout)
+	return c.Execute(ctx, stdout)
 }

@@ -2,6 +2,7 @@ package core
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,7 +15,7 @@ import (
 	"github.com/robizz/his-tor-y/xz"
 )
 
-func Now(DownloadURLTemplate, StartDate, EndDate string) (string, error) {
+func Now(ctx context.Context, DownloadURLTemplate, StartDate, EndDate string) (string, error) {
 	// create main temporary directory
 	dir, err := os.MkdirTemp("", "his-tor-y-")
 	if err != nil {
@@ -34,13 +35,13 @@ func Now(DownloadURLTemplate, StartDate, EndDate string) (string, error) {
 		u := fmt.Sprintf(DownloadURLTemplate, d)
 		// fmt.Println(u)
 		// Performances can be improved if download happens in parallel.
-		f, err := download.DownloadFile(dir, u)
+		f, err := download.DownloadFile(ctx, dir, u)
 		if err != nil {
 			return "", err
 
 		}
 		// Performances can be improved if extraction happens in parallel.
-		err = xz.ExtractFiles(f)
+		err = xz.ExtractFiles(ctx, f)
 		if err != nil {
 			return "", err
 		}

@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -37,12 +38,12 @@ func (n *Now) Parse(conf conf.Config, args []string) error {
 }
 
 // implements command interface in main package
-func (n *Now) Execute(stdout io.Writer) error {
+func (n *Now) Execute(ctx context.Context, stdout io.Writer) error {
 	// What am I supposed to do here?
 	// An interface would require me to abstract the flags you send t core to make them general
 	// or to do even more complicated stuff like "functional options pattern".. just for the sake of testing..
 	// An alternative would be to pass a fake download url as did in core tests
-	out, err := core.Now(n.Conf.ExitNode.DownloadURLTemplate, n.StartDate, n.EndDate)
+	out, err := core.Now(ctx, n.Conf.ExitNode.DownloadURLTemplate, n.StartDate, n.EndDate)
 
 	if err != nil {
 		return fmt.Errorf("execute error: %w", err)

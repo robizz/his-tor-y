@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 
 	"github.com/robizz/his-tor-y/arghandler"
 	"github.com/robizz/his-tor-y/command"
@@ -51,9 +53,8 @@ packages proposal:
 // END TODO
 
 const (
-	// exitFail is the exit code if the program
-	// fails.
-	exitFail = 1
+	exitCodeErr       = 1
+	exitCodeInterrupt = 2
 )
 
 // We do this wrapping to allow all defer()s to run before actually exiting.
@@ -65,9 +66,40 @@ func main() {
 		ExitNode: conf.ExitNode{DownloadURLTemplate: "https://collector.torproject.org/archive/exit-lists/exit-list-%s.tar.xz"},
 	}
 
-	if err := run(conf, os.Args, os.Stdout); err != nil {
+	// https://pace.dev/blog/2020/02/17/repond-to-ctrl-c-interrupt-signals-gracefully-with-context-in-golang-by-mat-ryer.html
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt)
+
+	defer func() {
+		signal.Stop(signalChan)
+		cancel()
+	}()
+
+	// The select will block until:
+	// - we get a signal
+	// - the context is done
+	// If we get a signal (case <-signalChan) then we call cancel(); this is how we cancel the context when the user presses Ctrl+C.
+	// Execution then falls to where we are just waiting for another signal <-signalChan.
+	// If it receives anything on the signalChan channel (a second signal),
+	// it calls os.Exit which exits without waiting for the program to naturally finish.
+	go func() {
+		select {
+		case <-signalChan: // first signal, cancel context
+			cancel()
+		case <-ctx.Done():
+		}
+		// If the program naturally exits after the first signal but before the second,
+		// this goroutine will be killed when the program exits (when the main function returns)
+		// so there’s no need to go to any extra effort to clean it up, however dissatisfying that might feel.
+		<-signalChan // second signal, hard exit
+		os.Exit(exitCodeInterrupt)
+	}()
+
+	if err := run(ctx, conf, os.Args, os.Stdout); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
-		os.Exit(exitFail)
+		os.Exit(exitCodeErr)
 	}
 
 }
@@ -76,12 +108,20 @@ func main() {
 // if everything is ok (terminal output is done by System.out stuff)
 // the function needs to be integration test friendly tho, meaning we should be
 // able to pass parameters and configuration (structs?)
-func run(conf conf.Config, args []string, stdout io.Writer) error {
+func run(ctx context.Context, conf conf.Config, args []string, stdout io.Writer) error {
 
-	// create router and register commands
-	r := arghandler.NewRouter()
-	r.Register("now", command.NewNow())
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+			// create router and register commands
+			r := arghandler.NewRouter()
+			r.Register("now", command.NewNow())
 
-	//execute based on args
-	return r.Execute(conf, args, stdout)
+			//execute based on args
+			return r.Execute(ctx, conf, args, stdout)
+		}
+	}
+
 }

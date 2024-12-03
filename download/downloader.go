@@ -1,6 +1,7 @@
 package download
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,7 +12,7 @@ import (
 
 // Matt Holt uses a "file approach" meaning you pass path to functions that do the magic
 // https://github.com/mholt/archiver/blob/cdc68dd1f170b8dfc1a0d2231b5bb0967ed67006/tarxz.go#L53-L66
-func DownloadFile(dir, uri string) (string, error) {
+func DownloadFile(ctx context.Context, dir, uri string) (string, error) {
 
 	fileURI := filepath.Join(dir, path.Base(uri))
 	// fmt.Println(fileURI)
@@ -22,10 +23,17 @@ func DownloadFile(dir, uri string) (string, error) {
 	}
 	defer fileHandle.Close()
 
-	resp, err := http.Get(uri)
+	req, err := http.NewRequestWithContext(ctx, "GET", uri, nil)
 	if err != nil {
 		return "", fmt.Errorf("download error: %w", err)
 	}
+
+	client := http.DefaultClient
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("download error: %w", err)
+	}
+
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {

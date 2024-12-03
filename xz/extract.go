@@ -2,6 +2,7 @@ package xz
 
 import (
 	"archive/tar"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -10,8 +11,8 @@ import (
 	"github.com/ulikunitz/xz"
 )
 
-func ExtractFiles(fileURI string) error {
-
+func ExtractFiles(ctx context.Context, fileURI string) error {
+	// here debug and find a place where toiplement the contect cancellation
 	fileHandle, err := os.Open(fileURI)
 	if err != nil {
 		return fmt.Errorf("extract file error: %w", err)
