@@ -1,6 +1,7 @@
 package download
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -24,7 +25,7 @@ func TestDownloadFile(t *testing.T) {
 	}
 	defer os.RemoveAll(dir)
 
-	f, err := DownloadFile(dir, ts.URL)
+	f, err := DownloadFile(context.Background(), dir, ts.URL)
 	if err != nil {
 		t.Errorf("error downloaded file:  %v", err)
 	}
@@ -61,7 +62,7 @@ func TestDownloadFileErrorOnDownloadConnection(t *testing.T) {
 	// reenableline below once that the code works :)
 	defer os.RemoveAll(dir)
 
-	_, err = DownloadFile(dir, ts.URL)
+	_, err = DownloadFile(context.Background(), dir, ts.URL)
 	if err == nil {
 		t.Errorf("error expected")
 	}
@@ -81,7 +82,7 @@ func TestDownloadFileErrorOnDownload(t *testing.T) {
 	}
 	defer os.RemoveAll(dir)
 
-	_, err = DownloadFile(dir, ts.URL)
+	_, err = DownloadFile(context.Background(), dir, ts.URL)
 	if err == nil {
 		t.Errorf("error expected")
 	}
@@ -107,7 +108,7 @@ func TestDownloadFileErrorOnMakeTmpFile(t *testing.T) {
 		t.Errorf("error setup tmp dir permissions:  %v", err)
 	}
 
-	_, err = DownloadFile(dir, ts.URL)
+	_, err = DownloadFile(context.Background(), dir, ts.URL)
 	if err == nil {
 		t.Errorf("error expected")
 	}

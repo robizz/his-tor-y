@@ -2,6 +2,7 @@ package core
 
 import (
 	"bufio"
+	"context"
 	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
@@ -26,7 +27,7 @@ func TestMainReturnWithCode(t *testing.T) {
 
 	fakeURLTemplate := ts.URL + "/%s"
 
-	_, err = Now(fakeURLTemplate, "2024-01", "2024-01")
+	_, err = Now(context.Background(), fakeURLTemplate, "2024-01", "2024-01")
 	if err != nil {
 		t.Errorf("Unxpected error: %v", err)
 	}
@@ -42,7 +43,7 @@ func TestMainReturnWithCodeErrorOnDownload(t *testing.T) {
 
 	fakeURLTemplate := ts.URL + "/%s"
 
-	_, err := Now(fakeURLTemplate, "2024-01", "2024-01")
+	_, err := Now(context.Background(), fakeURLTemplate, "2024-01", "2024-01")
 	if err == nil {
 		t.Error("Expected error, but got nil")
 	}
@@ -64,7 +65,7 @@ func TestMainReturnWithCodeErrorMalformedXZ(t *testing.T) {
 
 	fakeURLTemplate := ts.URL + "/%s"
 
-	_, err = Now(fakeURLTemplate, "2024-01", "2024-01")
+	_, err = Now(context.Background(), fakeURLTemplate, "2024-01", "2024-01")
 	if err == nil {
 		t.Errorf("Expected error, but got nil")
 	}

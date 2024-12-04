@@ -41,7 +41,7 @@ func Now(ctx context.Context, DownloadURLTemplate, StartDate, EndDate string) (s
 
 		}
 		// Performances can be improved if extraction happens in parallel.
-		err = xz.ExtractFiles(ctx, f)
+		err = xz.Extract(ctx, f)
 		if err != nil {
 			return "", err
 		}

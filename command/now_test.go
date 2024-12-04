@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
@@ -50,7 +51,7 @@ func TestExecuteNowCoreCall(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error expected to be nil")
 	}
-	err = n.Execute(os.Stdout)
+	err = n.Execute(context.Background(), os.Stdout)
 	if err != nil {
 		t.Fatalf("Expected nil, got: %v", err)
 	}
@@ -80,7 +81,7 @@ func TestExecuteErrorOnNowCoreCall(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error expected to be nil")
 	}
-	err = n.Execute(os.Stdout)
+	err = n.Execute(context.Background(), os.Stdout)
 	if err == nil {
 		t.Fatalf("Expected error, got: nil")
 	}

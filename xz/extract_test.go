@@ -1,6 +1,7 @@
 package xz
 
 import (
+	"context"
 	"encoding/base64"
 	"os"
 	"strings"
@@ -40,7 +41,7 @@ func TestExtractFiles(t *testing.T) {
 
 	defer os.RemoveAll(dir)
 
-	err = ExtractFiles(dir + string(os.PathSeparator) + "test.tar.xz")
+	err = Extract(context.Background(), dir+string(os.PathSeparator)+"test.tar.xz")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -94,7 +95,7 @@ func TestExtractFilesErrorOnPermission(t *testing.T) {
 		t.Errorf("error setup tmp file permissions:  %v", err)
 	}
 
-	err = ExtractFiles(dir + string(os.PathSeparator) + "test.tar.xz")
+	err = Extract(context.Background(), dir+string(os.PathSeparator)+"test.tar.xz")
 	if err == nil {
 		t.Errorf("expected error")
 	}
@@ -111,7 +112,7 @@ func TestExtractFilesErrorOnPermission(t *testing.T) {
 		t.Errorf("error setup tmp dir permissions:  %v", err)
 	}
 
-	err = ExtractFiles(dir + string(os.PathSeparator) + "test.tar.xz")
+	err = Extract(context.Background(), dir+string(os.PathSeparator)+"test.tar.xz")
 	if err == nil {
 		t.Errorf("expected error")
 	}
@@ -143,7 +144,7 @@ func TestExtractFilesErrorMalformedXZ(t *testing.T) {
 
 	defer os.RemoveAll(dir)
 
-	err = ExtractFiles(dir + string(os.PathSeparator) + "test.tar.xz")
+	err = Extract(context.Background(), dir+string(os.PathSeparator)+"test.tar.xz")
 	if err == nil {
 		t.Errorf("expected error")
 	}
