@@ -13,6 +13,7 @@ import (
 	"github.com/robizz/his-tor-y/exitnode"
 	"github.com/robizz/his-tor-y/files"
 	"github.com/robizz/his-tor-y/xz"
+	"golang.org/x/sync/errgroup"
 )
 
 func Now(ctx context.Context, DownloadURLTemplate, StartDate, EndDate string) (string, error) {
@@ -29,22 +30,19 @@ func Now(ctx context.Context, DownloadURLTemplate, StartDate, EndDate string) (s
 		return "", err
 	}
 
+	var g errgroup.Group
+
 	// fmt.Println(dates)
 	// open files for download
 	for _, d := range dates {
-		u := fmt.Sprintf(DownloadURLTemplate, d)
-		// fmt.Println(u)
-		// Performances can be improved if download happens in parallel.
-		f, err := download.DownloadFile(ctx, dir, u)
-		if err != nil {
-			return "", err
+		d:=d // new var per iteration
+		g.Go(func() error {
+			return pull(ctx, DownloadURLTemplate, d, dir)
+		})
+	}
 
-		}
-		// Performances can be improved if extraction happens in parallel.
-		err = xz.Extract(ctx, f)
-		if err != nil {
-			return "", err
-		}
+	if err := g.Wait(); err != nil {
+		return "", err
 	}
 
 	nodeFiles, err := files.NewReader(dir)
@@ -77,6 +75,24 @@ func Now(ctx context.Context, DownloadURLTemplate, StartDate, EndDate string) (s
 
 	// Final print do not comment.
 	return string(jsonList), nil
+}
+
+func pull(ctx context.Context, DownloadURLTemplate string, date string, dir string) error {
+	u := fmt.Sprintf(DownloadURLTemplate, date)
+
+	fmt.Println(u)
+
+	f, err := download.DownloadFile(ctx, dir, u)
+	if err != nil {
+		return err
+
+	}
+
+	err = xz.Extract(ctx, f)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // mapToMostRecentEntries read all the files, unmarshals them into a list of entries,
