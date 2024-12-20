@@ -43,14 +43,16 @@ func (n *Now) Execute(ctx context.Context, stdout io.Writer) error {
 	// An interface would require me to abstract the flags you send t core to make them general
 	// or to do even more complicated stuff like "functional options pattern".. just for the sake of testing..
 	// An alternative would be to pass a fake download url as did in core tests
-	out, err := core.Now(ctx, n.Conf.ExitNode.DownloadURLTemplate, n.StartDate, n.EndDate)
+	// out, err := core.Now(ctx, n.Conf.ExitNode.DownloadURLTemplate, n.StartDate, n.EndDate)
+	_, err := core.Now(ctx, n.Conf.ExitNode.DownloadURLTemplate, n.StartDate, n.EndDate)
 
 	if err != nil {
 		return fmt.Errorf("execute error: %w", err)
 	}
 
 	// Is command package responsible to print the output? if yes should it return 0 right?
-	fmt.Fprintf(stdout, "%s", out)
+	//fmt.Fprintf(stdout, "%s", out)
+	fmt.Print(stdout, "done")
 	return nil
 }
 

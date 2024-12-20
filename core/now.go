@@ -35,7 +35,7 @@ func Now(ctx context.Context, DownloadURLTemplate, StartDate, EndDate string) (s
 	// fmt.Println(dates)
 	// open files for download
 	for _, d := range dates {
-		d:=d // new var per iteration
+		d := d // new var per iteration
 		g.Go(func() error {
 			return pull(ctx, DownloadURLTemplate, d, dir)
 		})
@@ -87,8 +87,9 @@ func pull(ctx context.Context, DownloadURLTemplate string, date string, dir stri
 		return err
 
 	}
-
+	fmt.Println(f)
 	err = xz.Extract(ctx, f)
+	fmt.Printf("done: %s\n", f)
 	if err != nil {
 		return err
 	}
