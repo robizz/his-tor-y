@@ -11,24 +11,26 @@ import (
 )
 
 // Command struct
-type Now struct {
+type History struct {
 	StartDate string
 	EndDate   string
+	IP        string
 	Conf      conf.Config
 	// here the command should also support an output writer, that
 	// I'm going to need to test commands output and formatting and stuff
 }
 
-func NewNow() *Now {
-	return &Now{}
+func NewHistory() *History {
+	return &History{}
 }
 
-func (n *Now) Parse(conf conf.Config, args []string) error {
+func (n *History) Parse(conf conf.Config, args []string) error {
 	n.Conf = conf
 
-	set := flag.NewFlagSet("now", flag.ContinueOnError)
+	set := flag.NewFlagSet("history", flag.ContinueOnError)
 	set.StringVar(&n.StartDate, "start", "2024-01", "The start month in a range search")
 	set.StringVar(&n.EndDate, "end", "2024-03", "The end month in a range search")
+	set.StringVar(&n.IP, "ip", "192.168.1.1", "The IP to search in the TOR nodes history")
 
 	if err := set.Parse(args[2:]); err != nil {
 		return err
@@ -38,13 +40,13 @@ func (n *Now) Parse(conf conf.Config, args []string) error {
 }
 
 // implements command interface in main package
-func (n *Now) Execute(ctx context.Context, stdout io.Writer) error {
+func (n *History) Execute(ctx context.Context, stdout io.Writer) error {
 	// What am I supposed to do here?
 	// An interface would require me to abstract the flags you send t core to make them general
 	// or to do even more complicated stuff like "functional options pattern".. just for the sake of testing..
 	// An alternative would be to pass a fake download url as did in core tests
 	// out, err := core.Now(ctx, n.Conf.ExitNode.DownloadURLTemplate, n.StartDate, n.EndDate)
-	_, err := core.Now(ctx, n.Conf.ExitNode.DownloadURLTemplate, n.StartDate, n.EndDate)
+	_, err := core.History(ctx, n.Conf.ExitNode.DownloadURLTemplate, n.StartDate, n.EndDate, n.IP)
 
 	if err != nil {
 		return fmt.Errorf("execute error: %w", err)
@@ -56,6 +58,6 @@ func (n *Now) Execute(ctx context.Context, stdout io.Writer) error {
 	return nil
 }
 
-func (n *Now) Help() string {
+func (n *History) Help() string {
 	return "help?"
 }

@@ -16,7 +16,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func Now(ctx context.Context, DownloadURLTemplate, StartDate, EndDate string) (string, error) {
+func History(ctx context.Context, DownloadURLTemplate, StartDate, EndDate, IP string) (string, error) {
 	// create main temporary directory
 	dir, err := os.MkdirTemp("", "his-tor-y-")
 	if err != nil {
@@ -62,7 +62,7 @@ func Now(ctx context.Context, DownloadURLTemplate, StartDate, EndDate string) (s
 	// Performances can probably be improved if read happens in parallel,
 	// However dedup happens leveraging an hashmap, so same entries must be accessed
 	// in a safe way with some sort of semaphore. Measure performances before and after.
-	v, err := mapToMostRecentEntries(nodeFiles.Readers)
+	v, err := mapToMostRecentEntries(nodeFiles.Readers, IP)
 	if err != nil {
 		return "", err
 
@@ -100,26 +100,26 @@ func pull(ctx context.Context, DownloadURLTemplate string, date string, dir stri
 // iterate through the entries putting them in a map using the node as a key.
 // This generates a map with the most updated entry for each node leveraging 2 side effects:
 // files and entries inside files are ordered from older to newer (thanks to buildFileList() )
-func mapToMostRecentEntries(readers []*bufio.Reader) ([]exitnode.ExitNode, error) {
-	updated := make(map[string]exitnode.ExitNode)
+func mapToMostRecentEntries(readers []*bufio.Reader, IP string) ([]exitnode.ExitNode, error) {
+	updated := []exitnode.ExitNode{}
 	for _, reader := range readers {
 
 		exitNodes, err := exitnode.Unmarshal(reader)
 		if err != nil {
 			return nil, fmt.Errorf("unmarshall error for file reader: %w", err)
 		}
-
 		for _, n := range exitNodes {
-			updated[n.ExitNode] = n
+			for _, a := range n.ExitAddresses {
+				if a.ExitAddress == IP {
+					updated = append(updated, n)
+					break
+				}
+			}
 		}
 
 	}
 
-	v := make([]exitnode.ExitNode, 0, len(updated))
-	for _, value := range updated {
-		v = append(v, value)
-	}
-	return v, nil
+	return updated, nil
 }
 
 func generateYearDashMonthInterval(start, end string) ([]string, error) {

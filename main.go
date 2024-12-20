@@ -117,7 +117,7 @@ func run(ctx context.Context, conf conf.Config, args []string, stdout io.Writer)
 		default:
 			// create router and register commands
 			r := arghandler.NewRouter()
-			r.Register("now", command.NewNow())
+			r.Register("history", command.NewHistory())
 
 			//execute based on args
 			return r.Execute(ctx, conf, args, stdout)

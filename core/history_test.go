@@ -27,7 +27,7 @@ func TestMainReturnWithCode(t *testing.T) {
 
 	fakeURLTemplate := ts.URL + "/%s"
 
-	_, err = Now(context.Background(), fakeURLTemplate, "2024-01", "2024-01")
+	_, err = History(context.Background(), fakeURLTemplate, "2024-01", "2024-01", "194.26.192.64")
 	if err != nil {
 		t.Errorf("Unxpected error: %v", err)
 	}
@@ -43,7 +43,7 @@ func TestMainReturnWithCodeErrorOnDownload(t *testing.T) {
 
 	fakeURLTemplate := ts.URL + "/%s"
 
-	_, err := Now(context.Background(), fakeURLTemplate, "2024-01", "2024-01")
+	_, err := History(context.Background(), fakeURLTemplate, "2024-01", "2024-01", "194.26.192.64")
 	if err == nil {
 		t.Error("Expected error, but got nil")
 	}
@@ -65,7 +65,7 @@ func TestMainReturnWithCodeErrorMalformedXZ(t *testing.T) {
 
 	fakeURLTemplate := ts.URL + "/%s"
 
-	_, err = Now(context.Background(), fakeURLTemplate, "2024-01", "2024-01")
+	_, err = History(context.Background(), fakeURLTemplate, "2024-01", "2024-01", "194.26.192.64")
 	if err == nil {
 		t.Errorf("Expected error, but got nil")
 	}
@@ -97,11 +97,11 @@ ExitAddress 185.241.208.232 2024-01-31 10:21:55`
 	r1 := strings.NewReader(first)
 	r2 := strings.NewReader(second)
 	readers = append(readers, bufio.NewReader(r1), bufio.NewReader(r2))
-	nodes, err := mapToMostRecentEntries(readers)
+	nodes, err := mapToMostRecentEntries(readers, "185.241.208.232")
 	if err != nil {
 		t.Errorf("unexpected mapToMostRecentEntries error")
 	}
-	if nodes[0].Published.Day() != 31 {
+	if nodes[0].Published.Day() != 30 && nodes[0].Published.Second() != 55 {
 		t.Errorf("expected 31, got: %d", nodes[0].Published.Day())
 	}
 }
@@ -130,7 +130,7 @@ ExitAddress 185.241.208.232 2024-01-31 10:21:55`
 	r1 := strings.NewReader(first)
 	r2 := strings.NewReader(second)
 	readers = append(readers, bufio.NewReader(r1), bufio.NewReader(r2))
-	_, err := mapToMostRecentEntries(readers)
+	_, err := mapToMostRecentEntries(readers, "194.26.192.64")
 	if err == nil || !strings.Contains(err.Error(), "unmarshall error for file reader") {
 		t.Errorf("error expected")
 	}

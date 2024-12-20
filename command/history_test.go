@@ -12,7 +12,7 @@ import (
 )
 
 func TestParse(t *testing.T) {
-	n := NewNow()
+	n := NewHistory()
 	err := n.Parse(conf.Config{}, []string{"test", "now", "2024-01", "2024-02"})
 	if err != nil {
 		t.Fatalf("Error expected to be nil")
@@ -20,7 +20,7 @@ func TestParse(t *testing.T) {
 }
 
 func TestParseErrorOnParsing(t *testing.T) {
-	n := NewNow()
+	n := NewHistory()
 	err := n.Parse(conf.Config{}, []string{"test", "now", "2024-01", "true", "ttt"})
 	if err != nil {
 		t.Fatalf("Error expected to be nil")
@@ -46,7 +46,7 @@ func TestExecuteNowCoreCall(t *testing.T) {
 		},
 	}
 
-	n := NewNow()
+	n := NewHistory()
 	err = n.Parse(c, []string{"test", "now", "2024-01", "2024-01"})
 	if err != nil {
 		t.Fatalf("Error expected to be nil")
@@ -76,7 +76,7 @@ func TestExecuteErrorOnNowCoreCall(t *testing.T) {
 		},
 	}
 
-	n := NewNow()
+	n := NewHistory()
 	err = n.Parse(c, []string{"test", "now", "2024-01", "2024-01"})
 	if err != nil {
 		t.Fatalf("Error expected to be nil")
