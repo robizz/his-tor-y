@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"time"
 
 	"github.com/robizz/his-tor-y/download"
@@ -65,7 +66,6 @@ func History(ctx context.Context, DownloadURLTemplate, StartDate, EndDate, IP st
 	v, err := mapToMostRecentEntries(nodeFiles.Readers, IP)
 	if err != nil {
 		return "", err
-
 	}
 
 	jsonList, err := json.Marshal(&v)
@@ -118,7 +118,8 @@ func mapToMostRecentEntries(readers []*bufio.Reader, IP string) ([]exitnode.Exit
 		}
 
 	}
-
+	// Reverse the list, we want the most recent to be printed first.
+	slices.Reverse(updated)
 	return updated, nil
 }
 

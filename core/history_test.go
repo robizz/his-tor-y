@@ -79,7 +79,7 @@ func TestMapToMostRecentEntries(t *testing.T) {
 	var first = `
 @type tordnsel 1.0
 Downloaded 2024-01-30 13:02:00
-ExitNode FE39F07EBE7870DCE124AB30DF3ABD0700A43F75
+ExitNode AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 Published 2024-01-30 00:10:50
 LastStatus 2024-01-30 10:00:00
 ExitAddress 185.241.208.231 2024-01-30 10:21:54
@@ -88,8 +88,8 @@ ExitAddress 185.241.208.232 2024-01-30 10:21:55`
 	var second = `
 @type tordnsel 1.0
 Downloaded 2024-01-30 13:02:00
-ExitNode FE39F07EBE7870DCE124AB30DF3ABD0700A43F75
-Published 2024-01-31 00:10:50
+ExitNode BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+Published 2024-01-31 00:10:55
 LastStatus 2024-01-31 10:00:00
 ExitAddress 185.241.208.231 2024-01-31 10:21:54
 ExitAddress 185.241.208.232 2024-01-31 10:21:55`
@@ -101,8 +101,19 @@ ExitAddress 185.241.208.232 2024-01-31 10:21:55`
 	if err != nil {
 		t.Errorf("unexpected mapToMostRecentEntries error")
 	}
-	if nodes[0].Published.Day() != 30 && nodes[0].Published.Second() != 55 {
+
+	if nodes[0].ExitNode != "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB" {
+		t.Errorf("expected BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB, got: %s", nodes[0].ExitNode)
+	}
+	if nodes[0].Published.Day() != 31 && nodes[0].Published.Second() != 55 {
 		t.Errorf("expected 31, got: %d", nodes[0].Published.Day())
+	}
+
+	if nodes[1].ExitNode != "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" {
+		t.Errorf("expected AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA, got: %s", nodes[1].ExitNode)
+	}
+	if nodes[1].Published.Day() != 30 && nodes[1].Published.Second() != 50 {
+		t.Errorf("expected 30, got: %d", nodes[1].Published.Day())
 	}
 }
 
