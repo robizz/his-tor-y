@@ -97,22 +97,50 @@ func pull(ctx context.Context, DownloadURLTemplate string, date string, dir stri
 // files and entries inside files are ordered from older to newer (thanks to buildFileList() )
 func find(IP string, readers []*bufio.Reader) ([]exitnode.ExitNode, error) {
 	updated := []exitnode.ExitNode{}
-	for _, reader := range readers {
+	// preallocate a slice for the results with make and assign each goroutine an index into that slice.
+	// You shouldn’t need to synchronize writes since each element is essentially its own variable
+	found := make([][]exitnode.ExitNode, len(readers))
+	// you will need to make sure they are all done before you attempt to iterate the slice
+	var g errgroup.Group
 
-		exitNodes, err := exitnode.Unmarshal(reader)
-		if err != nil {
-			return nil, fmt.Errorf("unmarshall error for file reader: %w", err)
-		}
-		for _, n := range exitNodes {
-			for _, a := range n.ExitAddresses {
-				if a.ExitAddress == IP {
-					updated = append(updated, n)
-					break
+	// define how you want to coordinate the goroutines,
+	// define how many you spin up at once,
+	// and, of course how you handle errors.
+
+	// Depending on whether one error pooches the whole batch or not, you might be fine making a channel for them to report errors,
+	// or you might want to add an error field that you can check for in the output struct of each runner.
+
+	// If you want to bail early, you’re probably fine with just logging and exiting, unless you are doing more than reading, in which case a signal channel for cleanup or a context is probably called for.
+
+	for i, reader := range readers {
+		i := i
+		reader := reader
+		g.Go(func() error {
+			exitNodes, err := exitnode.Unmarshal(reader)
+			if err != nil {
+				return fmt.Errorf("unmarshall error for file reader: %w", err)
+			}
+			for _, n := range exitNodes {
+				for _, a := range n.ExitAddresses {
+					if a.ExitAddress == IP {
+						found[i] = append(found[i], n)
+						break
+					}
 				}
 			}
-		}
-
+			return nil
+		})
 	}
+
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+
+	// flatten the list
+	for _, nodes := range found {
+		updated = append(updated, nodes...)
+	}
+
 	// Reverse the list, we want the most recent to be printed first.
 	slices.Reverse(updated)
 	return updated, nil
