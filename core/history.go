@@ -17,6 +17,8 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// History is going to look for an IP in the specified time range and will
+// return all the nodes that had the IP as an an address.
 func History(ctx context.Context, DownloadURLTemplate, StartDate, EndDate, IP string) (string, error) {
 	// create main temporary directory
 	dir, err := os.MkdirTemp("", "his-tor-y-")
@@ -54,16 +56,9 @@ func History(ctx context.Context, DownloadURLTemplate, StartDate, EndDate, IP st
 
 	defer nodeFiles.Close()
 
-	// ---------
-	// mapToMostRecentEntries is going to be just a functionality that answers a question like:
-	// Is this IP a tor exit node NOW?
-	// doing
-	// `go run . [with maybe an -all parameter ] > nodes.json && jq '.[] | select(.ExitAddresses[].ExitAddress == "107.189.31.187")' nodes.json
-	// of caourse the date parameters for his-tor-y should be configured properly.
-	// Performances can probably be improved if read happens in parallel,
-	// However dedup happens leveraging an hashmap, so same entries must be accessed
-	// in a safe way with some sort of semaphore. Measure performances before and after.
-	v, err := mapToMostRecentEntries(nodeFiles.Readers, IP)
+	// find is going to look for an IP in all the readers and will
+	// return all the nodes that had the IP as an an address.
+	v, err := find(IP, nodeFiles.Readers)
 	if err != nil {
 		return "", err
 	}
@@ -96,11 +91,11 @@ func pull(ctx context.Context, DownloadURLTemplate string, date string, dir stri
 	return nil
 }
 
-// mapToMostRecentEntries read all the files, unmarshals them into a list of entries,
+// find read all the files, unmarshals them into a list of entries,
 // iterate through the entries putting them in a map using the node as a key.
 // This generates a map with the most updated entry for each node leveraging 2 side effects:
 // files and entries inside files are ordered from older to newer (thanks to buildFileList() )
-func mapToMostRecentEntries(readers []*bufio.Reader, IP string) ([]exitnode.ExitNode, error) {
+func find(IP string, readers []*bufio.Reader) ([]exitnode.ExitNode, error) {
 	updated := []exitnode.ExitNode{}
 	for _, reader := range readers {
 

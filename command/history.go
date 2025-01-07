@@ -42,19 +42,17 @@ func (n *History) Parse(conf conf.Config, args []string) error {
 // implements command interface in main package
 func (n *History) Execute(ctx context.Context, stdout io.Writer) error {
 	// What am I supposed to do here?
-	// An interface would require me to abstract the flags you send t core to make them general
+	// An interface would require me to abstract the flags you send to core to make them general
 	// or to do even more complicated stuff like "functional options pattern".. just for the sake of testing..
 	// An alternative would be to pass a fake download url as did in core tests
-	// out, err := core.Now(ctx, n.Conf.ExitNode.DownloadURLTemplate, n.StartDate, n.EndDate)
-	_, err := core.History(ctx, n.Conf.ExitNode.DownloadURLTemplate, n.StartDate, n.EndDate, n.IP)
+	out, err := core.History(ctx, n.Conf.ExitNode.DownloadURLTemplate, n.StartDate, n.EndDate, n.IP)
 
 	if err != nil {
 		return fmt.Errorf("execute error: %w", err)
 	}
 
 	// Is command package responsible to print the output? if yes should it return 0 right?
-	//fmt.Fprintf(stdout, "%s", out)
-	fmt.Print(stdout, "done")
+	fmt.Fprintf(stdout, "%s", out)
 	return nil
 }
 

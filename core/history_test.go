@@ -71,11 +71,11 @@ func TestMainReturnWithCodeErrorMalformedXZ(t *testing.T) {
 	}
 }
 
-// TestMapToMostRecentEntries tests that we are getting multiple updates for each node in input
-// but giving just the most updated one as a result.
-func TestMapToMostRecentEntries(t *testing.T) {
+// TestFind tests that are going to return all the nodes that had
+// the IP as an ExitAddress
+func TestFind(t *testing.T) {
 	var readers []*bufio.Reader
-	// create 2 reders for 2 files and test the update.
+	// create 2 readers for 2 files and test the update.
 	var first = `
 @type tordnsel 1.0
 Downloaded 2024-01-30 13:02:00
@@ -97,7 +97,7 @@ ExitAddress 185.241.208.232 2024-01-31 10:21:55`
 	r1 := strings.NewReader(first)
 	r2 := strings.NewReader(second)
 	readers = append(readers, bufio.NewReader(r1), bufio.NewReader(r2))
-	nodes, err := mapToMostRecentEntries(readers, "185.241.208.232")
+	nodes, err := find("185.241.208.232", readers)
 	if err != nil {
 		t.Errorf("unexpected mapToMostRecentEntries error")
 	}
@@ -141,7 +141,7 @@ ExitAddress 185.241.208.232 2024-01-31 10:21:55`
 	r1 := strings.NewReader(first)
 	r2 := strings.NewReader(second)
 	readers = append(readers, bufio.NewReader(r1), bufio.NewReader(r2))
-	_, err := mapToMostRecentEntries(readers, "194.26.192.64")
+	_, err := find("194.26.192.64", readers)
 	if err == nil || !strings.Contains(err.Error(), "unmarshall error for file reader") {
 		t.Errorf("error expected")
 	}
