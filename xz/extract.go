@@ -19,7 +19,6 @@ func Extract(ctx context.Context, fileURI string) error {
 		return fmt.Errorf("extract file error: %w", err)
 	}
 	defer fileHandle.Close()
-
 	r, err := xz.NewReader(fileHandle)
 	if err != nil {
 		return fmt.Errorf("xz reader error: %w", err)

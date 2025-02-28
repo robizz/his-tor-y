@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/pkg/profile"
 	"github.com/robizz/his-tor-y/arghandler"
 	"github.com/robizz/his-tor-y/command"
 	"github.com/robizz/his-tor-y/conf"
@@ -61,9 +60,6 @@ const (
 // We do this wrapping to allow all defer()s to run before actually exiting.
 // See https://pace.dev/blog/2020/02/12/why-you-shouldnt-use-func-main-in-golang-by-mat-ryer.html
 func main() {
-
-	// profiling
-	defer profile.Start(profile.CPUProfile, profile.ProfilePath(".")).Stop()
 
 	// Which configuration?
 	conf := conf.Config{
