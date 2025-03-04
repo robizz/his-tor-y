@@ -3,7 +3,6 @@ package core
 import (
 	"bufio"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -19,18 +18,18 @@ import (
 
 // History is going to look for an IP in the specified time range and will
 // return all the nodes that had the IP as an an address.
-func History(ctx context.Context, DownloadURLTemplate, StartDate, EndDate, IP string) (string, error) {
+func History(ctx context.Context, DownloadURLTemplate, StartDate, EndDate, IP string) ([]exitnode.ExitNode, error) {
 	// create main temporary directory
 	dir, err := os.MkdirTemp("", "his-tor-y-")
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	// reenable line below once that the code works :)
 	defer os.RemoveAll(dir)
 
 	dates, err := generateYearDashMonthInterval(StartDate, EndDate)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	var g errgroup.Group
@@ -45,12 +44,12 @@ func History(ctx context.Context, DownloadURLTemplate, StartDate, EndDate, IP st
 	}
 
 	if err := g.Wait(); err != nil {
-		return "", err
+		return nil, err
 	}
 
 	nodeFiles, err := files.NewReader(dir)
 	if err != nil {
-		return "", err
+		return nil, err
 
 	}
 
@@ -58,33 +57,28 @@ func History(ctx context.Context, DownloadURLTemplate, StartDate, EndDate, IP st
 
 	// find is going to look for an IP in all the readers and will
 	// return all the nodes that had the IP as an an address.
-	v, err := find(IP, nodeFiles.Readers)
+	nodes, err := find(IP, nodeFiles.Readers)
 	if err != nil {
-		return "", err
-	}
-
-	jsonList, err := json.Marshal(&v)
-	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	// Final print do not comment.
-	return string(jsonList), nil
+	return nodes, nil
 }
 
 func pull(ctx context.Context, DownloadURLTemplate string, date string, dir string) error {
 	u := fmt.Sprintf(DownloadURLTemplate, date)
 
-	fmt.Println(u)
+	// fmt.Println(u)
 
 	f, err := download.DownloadFile(ctx, dir, u)
 	if err != nil {
 		return err
 
 	}
-	fmt.Println(f)
+	// fmt.Println(f)
 	err = xz.Extract(ctx, f)
-	fmt.Printf("done: %s\n", f)
+	// fmt.Printf("done: %s\n", f)
 	if err != nil {
 		return err
 	}
